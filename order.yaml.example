@@ -1,0 +1,108 @@
+
+lists:
+  -
+    url: 'http://...'
+    out_file: 'edem.m3u8'
+    type: 'edem'
+  -
+    url: 'http://...'
+    out_file: 'vipdrive.m3u8'
+    type: 'vidprive'
+
+group_hd_split: ['кино', 'спорт']
+
+group_order: ['HD', 'EE', 'кино HD', 'кино', 'спорт HD', 'спорт', '4K', 'музыка',
+              'познавательные', 'сериалы', 'детские', 'иностранные', 'новости', 'развлекательные',
+              'другие', 'HD Orig', 'взрослые']
+groups:
+  -
+    name: 'HD'
+    begin: ['Первый канал HD', 'Россия 1 HD', 'ТВ3 HD', 'Пятница! HD', 'ТНТ HD', 'ТНТ HD 50', 'ТНТ4 HD', 'СТС HD', 'Рен ТВ HD',
+            'НТВ HD', 'Звезда HD', 'Звезда Плюс HD', 'Авто Плюс HD', 'VF Авто', 'DTX HD', 'Discovery Channel HD', 'Discovery Science HD', 'Discovery HD orig', 'ID Xtra HD', 'ETV HD EE',
+            'ETV2 HD EE', 'ETV+ HD EE', 'EE TV HD EE', 'минимакс-live planet HD', 'Планета HD', 'Нано ТВ HD', 'Первый космический HD', 'Космо HD',
+            'Russian Extreme HD', 'День Победы HD', 'Арсенал HD', 'Победа HD', 'Galaxy HD', 'Viasat Explore HD',
+            'Viasat History HD', 'Viasat Nature/History HD', 'минимакс-live planet HD', 'Мир HD', 'Nat Geo Wild HD', 'Nat Geo Wild HD 50',
+            'National Geographic HD', 'National Geographic Channel HD 50', 'History HD', 'RTG HD', 'Fuel TV HD', 'Mezzo Live HD',
+            'Animal Planet HD', 'Живая природа HD', 'Дикая охота HD', 'Охотник и рыболов HD', 'Travel HD']
+    force: ['Первый канал HD', 'Россия 1 HD', 'ТВ3 HD', 'Пятница! HD', 'ТНТ HD', 'ТНТ HD 50', 'ТНТ4 HD', 'СТС HD', 'Рен ТВ HD',
+            'НТВ HD', 'Звезда HD', 'Звезда Плюс HD', 'Авто Плюс HD', 'VF Авто', 'DTX HD', 'Discovery Channel HD', 'Discovery Science HD', 'Discovery HD orig',
+            'ID Xtra HD', 'ETV HD EE', 'ETV2 HD EE', 'ETV+ HD EE', 'EE TV HD EE', 'Планета HD', 'Нано ТВ HD',
+            'Первый космический HD', 'Космо HD', 'Russian Extreme HD', 'День Победы HD', 'Арсенал HD', 'Победа HD', 'Galaxy HD',
+            'Viasat Explore HD', 'Viasat History HD', 'Viasat Nature/History HD', 'Мир HD',
+            'Nat Geo Wild HD', 'Nat Geo Wild HD 50', 'National Geographic HD', 'National Geographic Channel HD 50',
+            'History HD', 'RTG HD', 'Fuel TV HD', 'Mezzo Live HD', 'Animal Planet HD', 'Живая природа HD', 'Дикая охота HD',
+            'Охотник и рыболов HD', 'Travel HD', 'минимакс-live planet HD', 'MS CRIME HD']
+    end: ['Россия 1 HD 50']
+  -
+    name: 'EE'
+    begin: ['Первый канал', 'Россия 1', 'НТВ', 'ТВ3', 'ТНТ', 'СТС', 'Рен ТВ', 'ТВЦ', 'Россия-Культура', 'Москва Доверие', 'Телеканал Звезда', 'Звезда Плюс', 'Авто Плюс', 'Авто 24', 'Пятница!', 'ETV EE', 'ETV+ EE', 'ETV2 EE', 'TV3 EE', 'Kanal 2 EE', 'Discovery Channel', 'Discovery Science', 'Discovery']
+    force: ['Первый канал', 'Россия 1', 'НТВ', 'ТВ3', 'ТНТ', 'СТС', 'Рен ТВ', 'ТВЦ', 'Россия-Культура', 'Москва Доверие', 'Телеканал Звезда', 'Звезда Плюс', 'Авто Плюс', 'Авто 24', 'Пятница!', 'ETV EE', 'ETV+ EE', 'ETV2 EE', 'TV3 EE', 'Kanal 2 EE', 'Discovery Channel', 'Discovery Science', 'Discovery']
+  -
+    name: 'сериалы'
+    begin: ['Paramount Comedy HD', 'VF Друзья']
+    force: ['A2 HD', 'Fox HD', 'Fox Life HD', 'VF Друзья', 'VIP Serial HD', 'Paramount Comedy HD', 'Lost HD', 'Serial HD',
+            'Илья ТВ Сериал HD', 'Z!Serial HD', 'Z!Sitcom HD', 'START Air HD', 'START World', 'UZ Сваты HD', 'VF Series',
+            'VF TOP Series', 'VF Игра престолов', 'VF Рельные панацы', 'VF СашаТаня', 'VF Сваты', 'VF Сериал', 'VF След',
+            'VF Солдаты', 'VF Тайны следствия', 'VF Универ', 'VF Универ новая общага', 'VF Чернобыль', '33 квадратных метра',
+            'минимакс-воронины HD', 'минимакс-квартирник HD', 'минимакс-сваты HD', 'минимакс-ситком HD', 'Сериал "Скорая помощь"',
+            'Amedia Hit HD', 'Amedia Premium HD', 'BCU RUSERIAL HD', 'BOX Serial HD', 'BOX M.Serial HD', 'CineMan Ментовские войны',
+            'CineMan Лесник', 'CineMan ПёС', 'Dosug TV ER', 'Fresh Series', 'LIBERTY serialy', 'LIBERTY svaty', 'LIBERTY ТУРК ФИЛЬМ 4K',
+            'PROKOP TV SERIAL HD', 'Series Tv HD', 'SKY HIGH SERIES HD', 'PROKOP TV SERIAL FHD', 'VF Воронины', 'VF Доктор Хаус',
+            'VF Реальные пацаны', 'минимакс-полицейский с Рублёвки HD', 'минимакс-ольга HD', 'Canal+ Series FR', 'CineMan Сваты',
+    'Dosug TV Сериал', 'Dosug TV Сваты', 'Dosug TV Ходячие мертвецы', 'VF Ходячие мертвецы', 'KBC-Криминальный Serial', 'Liberty Сваты',
+    'Liberty The Simpsons', 'Liberty Сериалы FHD', 'MM Гриффины HD', 'SKY HIGH ANIME HD', 'KBC-Family Animation']
+  -
+    name: 'музыка'
+    force: ['Bridge Deluxe', 'AIVA TV HD', 'KLI CLUB FHD', 'KLI Retro HD', 'MTV Live HD', 'BRIDGE HD', '4ever Music', 'C-Music HD', 'Жара HD', 'MTV Россия HD',
+            'о2тв HD', 'Clubbing TV HD RU', 'AIVA HD', 'Viva HD', 'Krone hit HD', 'Mix m tv hd', '9 Volna HD', 'Music Top HD',
+            'Spirit Tv HD', 'Biz music HD', 'Baraza Music HD', 'Илья ТВ Музыка HD', 'Первый музыкальный HD', 'Первый музыкальный HD BY', 'Первый музыкальный FULL HD', 'Первый музыкальный FHD (Бел)',
+            'PROKOP TV ROCK HD', 'SKY HIGH LO FI HD', 'TOP Великолепный Век HD', 'UZ KLIP NEW', 'VF Привет из 90х',
+            'YOSSO TV Music Hits', 'минимакс-rock HD', 'минимакс-world hits HD', 'KLI Club FHD']
+  -
+    name: 'детские'
+    force: ['BCU Multserial HD', 'BCU Мультсериал HD', 'Nickelodeon HD', 'СТС Kids HD', 'BCU Kids HD', 'BCU Kids+ HD', 'ВЕСЕЛАЯ КАРУСЕЛЬ HD',
+            'LIBERTY BEBIMULT HD', 'LIBERTY СКАЗКИ 4K', 'LIBERTY СОЮЗ 4K', 'UZ-Tom&Jerry HD', 'VF Cartoon', 'VF VHS Cartoon',
+            'VF Без цензуры', 'VF Малыш', 'UZ Малютка ТВ', 'UZ МУЛЬТЗАЛ HD', 'Fresh Kids', 'Kinoshka KIDS HD',
+            'VF Мультфильмы СССР', 'минимакс-honey HD', 'минимакс-lesson HD', 'Nickelodeon HD', 'СТС Kids HD', 'BCU Kids HD',
+            'BCU Kids+ HD', 'ЕРАЛАШ HD', 'ВЕСЕЛАЯ КАРУСЕЛЬ HD', 'минимакс-smile HD', 'минимакс-Tom & Jerry HD',
+            'минимакс-ussr-мультфильм HD', 'минимакс-ussr-приключения HD', 'минимакс-walt disney HD', 'С-Cartoon',
+            'MS TOONS HD', 'Dosug Kids HD', 'KBC-Союз МУЛЬТZAL', 'LIBERTY MULTUKR 4K', 'Liberty Мульт 4K', 'Liberty Мульт ENG 4K',
+    'YOSSO TV C-Cartoon']
+  -
+    name: 'спорт HD'
+    begin: ['Моторспорт ТВ HD', 'SKY SPORTS F1 UK', 'sky Sport F1 DE', 'Sky Sport F1 FHD DE', 'Sky Sport F1 IT' ]
+    force: ['Моторспорт ТВ HD', 'SKY SPORTS F1 UK', 'sky Sport F1 DE', 'Sky Sport F1 FHD DE', 'Sky Sport F1 IT', 'Setanta Sports 1 Baltic HD',
+            'Setanta Sports 2 Belarus HD', 'Setanta Ukraine Plus HD']
+  -
+    name: 'спорт'
+    begin: ['Моторспорт ТВ', 'SKY SPORT MOTOGP', 'SKY SPORTS F1 UK', 'sky Sport F1 DE', 'Sky Sport F1 IT']
+    force: ['beIN Sports 1 HD QA', 'beIN Sports 3 HD QA', 'beIN Sports 4 HD QA', 'beIN Sports 5 HD QA', 'beIN Sports 6 HD QA', 'beIN Sports 7 HD QA', 'beIN Sports 8 HD QA', 'beIN Sports 2 Premium HD QA', 'beIN Sports 1 Premium HD QA', 'beIN Sports 1 HD EN',
+            'beIN Sports 2 HD EN', 'Eleven Sports 1 HD PL', 'Eleven Sports 2 HD PL', 'Movistar Deportes 1 HD ES', 'Movistar Golf HD ES', 'Movistar LaLiga HD ES', 'Movistar Liga Campeones HD ES', 'Super Tennis HD', 'TENNIS HD US', 'Матч! Футбол 3 HD', 'Матч! Арена HD',
+            'Матч! Футбол 2 HD', 'Матч! Футбол 2 HD 50', 'Матч! HD', 'Телеканал КХЛ HD', 'Матч! Премьер HD', 'Матч ТВ HD', 'Матч ТВ HD 50', 'Матч! Футбол 1 HD 50 orig', 'Матч! Футбол 1 HD', 'Матч! Игра HD', 'Матч! Игра HD 50', 'Eurosport 1 HD', 'Eurosport 2 North-East HD', 'XSPORT HD', 'Setanta Sports 2', 'Setanta Sports HD', 'Setanta Sports Ukraine HD', 'UFC ТВ',
+            'Viasat Sport HD', 'Setanta Eurasia HD', 'Setanta Eurasia Plus HD', 'Setanta Qazaqstan HD', 'Setanta Ukraine HD', 'Футбол 3 HD', 'Dazn F1 HD ES', 'Старт HD', 'Хоккейный HD', 'Матч Игра HD 50', 'Матч! Футбол 3 HD 50', 'МАТЧ! HD 50', 'Матч! Премьер HD 50', 'KHL HD', 'КХЛ HD 50', 'KHL Prime 50',
+            'Наш Спорт 10 HD', 'Наш Спорт 11 HD', 'Наш Спорт 12 HD', 'Наш Спорт 13 HD', 'Наш Спорт 14 HD', 'Наш Спорт 15 HD', 'Наш Спорт 16 HD', 'Наш Спорт 17 HD', 'Наш Спорт 18 HD', 'Наш Спорт 19 HD', 'Наш Спорт 20 HD', 'Наш Спорт 21 HD', 'Наш Спорт 22 HD', 'Наш Спорт 23 HD',
+            'Наш Спорт 24 HD', 'Viasat Sport Premium HD SK']
+  -
+    name: 'иностранные'
+    force: ['AXN HD BR', 'BAND NEWS HD BR', 'BAND SP HD BR', 'BAND SPORTS HD BR', 'beIN Fox Movies HD', 'beIN FX MOVIES HD', 'beIN Movies HD2 ACTION', 'beIN Movies HD3 DRAMA', 'beIN Movies HD4 FAMILY', 'beIN Series HD 1', 'Canal Discovery HD PL',
+            'CANAL+ FAMILY HD PL', 'Canal+ Film HD PL', 'Canal+ HD FR', 'Comedy Central HD DE', 'E! Entertainment HD RO', 'FOX COMEDY HD PL', 'FOX HD PL', 'FRANCE 2 HD', 'FRANCE 3 HD', 'FRANCE 4 HD', 'FRANCE 5 HD', 'FRANCE O HD', 'Kabel Eins HD DE',
+            'Kino Polska HD PL', 'Kino Polska PL','Movistar Cine Doc & Roll HD ES', 'Movistar Estrenos HD ES', 'Movistar Seriesmania HD ES', 'Polsat 2 HD PL', 'Polsat Cafe HD PL', 'Polsat Film HD PL', 'Polsat Play HD PL', 'ProSieben HD DE', 'ZMaxx HD DE', 'RTL 2 HD DE',
+            'RTL HD DE', 'RTL Nitro HD DE', 'Sat.1 HD DE', 'Spiegel Geschichte HD DE', 'Super RTL HD DE', 'SUPER POLSAT HD PL', 'Syfy HD DE', 'TNT Comedy HD DE', 'TNT Film HD DE', 'TNT Serie HD DE', 'Universal TV HD DE',
+            'VOX HD DE', 'ZDF HD DE', 'Canal+ Cinema HD FR', 'Disney Cinemagic HD DE', 'FOX COMEDY PL', 'FOX COMEDY HD PL', 'Movistar Comedia ES', 'Movistar Drama ES', 'Sky Cinema HD DE', 'Sky Cinema Action HD DE', 'Sky Cinema Thriller HD DE',
+            'Sky Hits HD DE', 'Sky Romance TV FHD DE', 'Cine + Classic FR', 'Sky Arts HD DE', 'Movistar Accion ES']
+  -
+    name: 'кино'
+    force: ['BCU Kinozakaz HD', 'Amedia 2 HD', 'CINEMAX THRILLERMAX HD US','VIP Premiere HD', 'VIP Comedy HD', 'VIP Megahit HD', 'Hollywood HD', 'Остросюжетное HD', 'Дом Кино Премиум HD', 'Комедийное HD', 'Комедийное HD', 'Душевное кино HD', 'Наше крутое HD', 'Киноужас HD', 'Русский роман HD', 'Кино ТВ HD',
+            'Наше любимое HD','Русский иллюзион HD', 'Романтичное HD', 'Paramount Channel HD', 'Про Любовь HD', 'Наш Кинопоказ HD', 'Блокбастер HD', 'Хит HD', 'Кинопоказ HD', 'Наше Мужское HD', 'Камеди HD', 'Шокирующее HD', 'TV1000 Action HD', 'TV 1000 Action HD', 'TV 1000 HD', 'TV1000 HD',
+            'TV 1000 Русское кино HD', 'TV1000 Русское Кино HD', 'Премиальное HD 50', 'Мужское Кино HD', 'Flux HD', 'BCU Кинозал Premiere 1 HD', 'BCU Кинозал Premiere 2 HD', 'BCU Кинозал Premiere 3 HD', 'BCU СССР HD', 'BCU Action HD', 'BCU Catastrophe HD', 'BCU Cinema HD', 'BCU Cinema+ HD',
+            'BCU Comedy HD', 'BCU Fantastic HD', 'BCU FilMystic HD', 'BCU History HD', 'BCU Kinorating HD', 'BCU Marvel HD', 'BCU Premiere HD', 'BCU Romantic HD', 'BCU Russian HD', 'BCU VHS HD', 'BCUMEDIA HD', 'BCU Stars HD', 'BCU Ultra 4K',
+            'BCU RUSERIAL HD', 'BCU Сваты HD', 'BCU Criminal HD', 'BCU Reality HD', 'BCU Survival HD', 'BCU Cosmo HD', 'BCU TruMotion HD', 'BACKUS TV HD', 'BEST Films HD', 'Sky2000 HD', 'Кинозал! VHS HD', 'Кинозал! ХИТ HD', 'СТРАХ HD', 'ФАНТАСТИКА HD',  'Premiere HD',
+            'Premium HD', 'РуКино HD', 'Victory HD', 'Paradox HD', 'Thriller HD', 'Paradise HD', 'Илья ТВ Кино HD', 'Илья ТВ Наше HD', 'Ужас ТВ HD', 'Christmas HD', 'UZ Swiridenko TV HD', 'UZ Swiridenko TV HD 2','UZ SWIRIDENKO TV HD', 'UZ SWIRIDENKO TV HD 2', 'Magic Family HD', 'UZ Kino 5 HD', 'Magic Love HD',
+            'Кинопремьера HD', 'Bollywood HD', 'Epic Drama', 'Видеокассета Ужасы', 'kino watch тв Свежаки HD']
+  -
+    name: 'другие'
+    force: ['UZ Ералаш ТВ HD', 'VF Аниме', 'VF Городок', 'Сериал "Симпсоны"', 'BOX Anime HD', 'BOX Game HD', 'FAN HD',
+            'LIBERRTY THE SIMSONS', 'LIBERTY SouthPark', 'MS ANIMATED', 'MS ANIMATED HD', 'SKY HIGH ADULT HD']
+  -
+    name: 'взрослые'
+    end: []
