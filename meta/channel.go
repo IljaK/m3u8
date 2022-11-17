@@ -21,8 +21,7 @@ type Channel struct {
 	Width       int
 	Height      int
 
-	IsEdem     bool
-	IsVipdrive bool
+	ProviderType string
 
 	meta *Media
 }
@@ -88,10 +87,8 @@ func (c *Channel) SetName(nameData string, groupName string) {
 			log.Println(err)
 		}
 	} else {
-		mustUpdate := false
 		if channelData.Width == 0 || channelData.Height == 0 {
 			c.loadMeta()
-			mustUpdate = channelData.Width != c.Width || channelData.Height != c.Height
 			channelData.Width = c.Width
 			channelData.Height = c.Height
 		} else {
@@ -99,18 +96,16 @@ func (c *Channel) SetName(nameData string, groupName string) {
 			c.Height = channelData.Height
 		}
 
-		if mustUpdate || channelData.Name != c.Name ||
-			channelData.HistoryDays != c.HistoryDays ||
-			channelData.Group != groupName {
-			channelData.Name = c.Name
-			channelData.HistoryDays = c.HistoryDays
-			channelData.Group = groupName
-			err = db.QueryUpdateChannel(channelData)
-			if err != nil {
-				log.Println(err)
-			}
+		err = db.QueryUpdateChannel(channelData)
+		if err != nil {
+			log.Println(err)
+		}
+		err = db.QueryUpdateProvider(channelData, c.ProviderType)
+		if err != nil {
+			log.Println(err)
 		}
 	}
+
 }
 
 func (c *Channel) loadMeta() *ffprobe.MetaData {
@@ -118,7 +113,7 @@ func (c *Channel) loadMeta() *ffprobe.MetaData {
 		return nil
 	}
 
-	media := ReadUrl(c.Url)
+	media := ReadUrl(c.Url, c.ProviderType)
 
 	if media != nil && len(media.Records) > 0 {
 

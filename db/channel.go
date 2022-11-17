@@ -69,9 +69,7 @@ returning id;`, channel.Name, channel.RemoteId, channel.Width, channel.Height, c
 		return err
 	}
 
-	var id int
-	err = ScanRow(row, &id)
-	return err
+	return ScanRow(row, &channel.Id)
 }
 
 func QueryUpdateChannel(channel *Channel) error {
@@ -84,8 +82,10 @@ name = $2,
 history_days = $3,
 width = $4,
 height = $5,
-group_origin = $6
-where remote_id = $1;`, channel.RemoteId, channel.Name, channel.HistoryDays, channel.Width, channel.Height, channel.Group)
+group_origin = $6,
+updated_at = now()
+where remote_id = $1
+returning id;`, channel.RemoteId, channel.Name, channel.HistoryDays, channel.Width, channel.Height, channel.Group)
 
 	if err != nil {
 		log.Println(err)

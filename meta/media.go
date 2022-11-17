@@ -62,6 +62,7 @@ func (m *multiGroup) Contains(channelName string) bool {
 }
 
 type Media struct {
+	providerType  string
 	validFileType bool
 
 	Version        string // #EXT-X-VERSION:3
@@ -100,7 +101,8 @@ func (m *Media) addGroup(record *Record) {
 	}
 
 	channel := Channel{
-		Url: record.Url,
+		Url:          record.Url,
+		ProviderType: m.providerType,
 	}
 	channel.SetName(record.NameData, record.GroupName)
 
@@ -245,7 +247,7 @@ func ReadFile(filePath string) *Media {
 	return media
 }
 
-func ReadUrl(url string) *Media {
+func ReadUrl(url string, providerType string) *Media {
 
 	http.DefaultClient.Timeout = 10 * time.Second
 	resp, err := http.Get(url)
@@ -256,6 +258,7 @@ func ReadUrl(url string) *Media {
 
 	var media *Media
 	media, err = readRecords(resp.Body)
+	media.providerType = providerType
 	_ = resp.Body.Close()
 
 	if err != nil {

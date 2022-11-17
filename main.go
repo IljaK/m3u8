@@ -68,12 +68,12 @@ func compareResult(fileName string) {
 	}
 }
 
-func loadPlayList(url string, outFileName string, mediaType string) {
+func loadPlayList(url string, outFileName string, providerType string) {
 	if url == "" {
 		return
 	}
 
-	media := meta.ReadUrl(url)
+	media := meta.ReadUrl(url, providerType)
 
 	if media == nil {
 		return
