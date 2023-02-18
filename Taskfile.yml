@@ -5,20 +5,24 @@ dotenv: ['m3u8.env']
 tasks:
   build:
     cmds:
-      - cd src && env GOOS=linux GOARCH=amd64 go build -o ../linux-amd64/payment-gateway main.go
-      - cd src && env GOOS=darwin GOARCH=amd64 go build -o ../macos-amd64/payment-gateway main.go
+      - env GOOS=linux GOARCH=amd64 go build -o ./build/linux-amd64/m3u8 main.go
+      - env GOOS=darwin GOARCH=amd64 go build -o ./build/macos-amd64/m3u8 main.go
     silent: false
   generate:
     cmds:
       - sqlc generate
     silent: false
-  migrate:
+  migrate:up:
     cmds:
       - echo {{.DB_URI}}
-      - migrate -path=sql/migrations -database {{.DB_URI}} version
-      - migrate -path=sql/migrations -database {{.DB_URI}} up
+      - migrate -path=migrations -database {{.DB_URI}} up
+  migrate:version:
+    cmds:
+      - echo {{.DB_URI}}
+      - migrate -path=migrations -database {{.DB_URI}} version
   migrate:down:
     cmds:
+      - echo {{.DB_URI}}
       - migrate -path=migrations -database {{.DB_URI}} down 1
   migrate:new:
     cmds:

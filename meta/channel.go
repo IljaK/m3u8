@@ -87,7 +87,7 @@ func (c *Channel) SetName(nameData string, groupName string) {
 			log.Println(err)
 		}
 	} else {
-		if channelData.Width == 0 || channelData.Height == 0 {
+		if channelData.Width == 0 || channelData.Height == 0 || channelData.Name != c.Name {
 			c.loadMeta()
 			channelData.Width = c.Width
 			channelData.Height = c.Height
@@ -95,6 +95,9 @@ func (c *Channel) SetName(nameData string, groupName string) {
 			c.Width = channelData.Width
 			c.Height = channelData.Height
 		}
+
+		channelData.Name = c.Name
+		channelData.HistoryDays = c.HistoryDays
 
 		err = db.QueryUpdateChannel(channelData)
 		if err != nil {
