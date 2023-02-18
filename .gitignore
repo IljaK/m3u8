@@ -17,3 +17,5 @@
 order.yaml
 .idea
 output
+build
+**.env

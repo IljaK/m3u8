@@ -230,6 +230,7 @@ func ReadFile(filePath string) *Media {
 		log.Printf("Failed to open file: %v\n", err)
 		return nil
 	}
+
 	defer file.Close()
 
 	var media *Media

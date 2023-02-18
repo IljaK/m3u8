@@ -4,6 +4,7 @@ import (
 	"log"
 	"m3u8/util"
 	"sort"
+	"strings"
 )
 
 type Group struct {
@@ -13,7 +14,7 @@ type Group struct {
 
 func (g *Group) FindChannel(channelName string) (*Channel, int) {
 	for i2, channel := range g.Channels {
-		if channel != nil && channel.Name == channelName {
+		if channel != nil && strings.ToLower(channel.Name) == strings.ToLower(channelName) {
 			return channel, i2
 		}
 	}

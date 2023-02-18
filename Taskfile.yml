@@ -1,0 +1,25 @@
+version: '3'
+
+dotenv: ['m3u8.env']
+
+tasks:
+  build:
+    cmds:
+      - cd src && env GOOS=linux GOARCH=amd64 go build -o ../linux-amd64/payment-gateway main.go
+      - cd src && env GOOS=darwin GOARCH=amd64 go build -o ../macos-amd64/payment-gateway main.go
+    silent: false
+  generate:
+    cmds:
+      - sqlc generate
+    silent: false
+  migrate:
+    cmds:
+      - echo {{.DB_URI}}
+      - migrate -path=sql/migrations -database {{.DB_URI}} version
+      - migrate -path=sql/migrations -database {{.DB_URI}} up
+  migrate:down:
+    cmds:
+      - migrate -path=migrations -database {{.DB_URI}} down 1
+  migrate:new:
+    cmds:
+      - migrate create -ext sql -dir migrations {{.CLI_ARGS}}
