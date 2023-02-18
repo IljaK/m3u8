@@ -53,12 +53,14 @@ func LoadMetaData(url string) *MetaData {
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 
+	//log.Printf("Start cmd: %s", strings.Join(cmd.Args, " "))
 	err := cmd.Start()
 	if err != nil {
 		log.Printf("Failed to get file info: %v", err)
 		return nil
 	}
 
+	//log.Printf("Wait cmd")
 	err = cmd.Wait()
 	if err != nil {
 		log.Printf("Failed to wait till cmd finish: %v", err)

@@ -124,7 +124,9 @@ func main() {
 		panic(err)
 	}
 	log.Println("DB connected")
+	log.Println("Processing data...")
 	processListConfig()
 	//readInputFiles()
 	// compareResult("edem_playlist.m3u8");
+	log.Println("Completed!")
 }
