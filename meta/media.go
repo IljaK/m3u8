@@ -337,7 +337,7 @@ func (m *Media) forceChannels(groupName string, channelNames []string) {
 			if g.Name != group.Name {
 				for i := len(g.Channels) - 1; i >= 0; i-- {
 					channel := g.Channels[i]
-					if channel.Name == chnl {
+					if strings.ToLower(channel.Name) == strings.ToLower(chnl) {
 						// No breaking here, there can be multiple channels with same name!
 						g.extractChannel(i)
 						channels = append(channels, channel)

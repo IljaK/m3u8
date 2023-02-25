@@ -2,11 +2,9 @@
 lists:
   -
     url: 'http://...'
-    out_file: 'edem.m3u8'
     type: 'edem'
   -
     url: 'http://...'
-    out_file: 'vipdrive.m3u8'
     type: 'vidprive'
 
 

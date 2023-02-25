@@ -66,13 +66,9 @@ func compareResult(fileName string) {
 	}
 }
 
-func loadPlayList(url string, outFileName string, providerType string) {
+func loadPlayList(url string, providerType string) {
 	if url == "" {
 		log.Errorf("invalid url in list")
-		return
-	}
-	if outFileName == "" {
-		log.Errorf("invalid outFileName in list")
 		return
 	}
 	if providerType == "" {
@@ -86,7 +82,7 @@ func loadPlayList(url string, outFileName string, providerType string) {
 		return
 	}
 	processChannels(media)
-	media.WriteFile("output/" + outFileName)
+	media.WriteFile("output/" + providerType + ".m3u8")
 }
 
 func processListConfig() {
@@ -112,7 +108,7 @@ func processListConfig() {
 
 func processList(wg *sync.WaitGroup, cfg map[string]interface{}) {
 	defer wg.Done()
-	loadPlayList(util.GetValue("url", cfg, ""), util.GetValue("out_file", cfg, ""), util.GetValue("type", cfg, ""))
+	loadPlayList(util.GetValue("url", cfg, ""), util.GetValue("type", cfg, ""))
 }
 
 func main() {
