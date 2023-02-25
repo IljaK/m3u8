@@ -3,9 +3,9 @@ package meta
 import (
 	"bufio"
 	"errors"
-	"github.com/spf13/viper"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
+	"m3u8/cfg"
 	"m3u8/util"
 	"net/http"
 	"os"
@@ -14,8 +14,6 @@ import (
 	"sync"
 	"time"
 )
-
-var Conf *viper.Viper
 
 type Record struct {
 	GroupName string // #EXTGRP:HD
@@ -211,17 +209,6 @@ func (m *Media) CheckHighRes(groupName string, fullSearch bool, threads int) {
 	hiResGroup.Channels = separated.highResChannels
 }
 
-func LoadConfig() {
-	Conf = viper.New()
-	Conf.SetConfigName("order")
-	Conf.SetConfigType("yaml")
-	Conf.AddConfigPath(".")
-	err := Conf.ReadInConfig() // Find and read the config file
-	if err != nil {            // Handle errors reading the config file
-		panic(err)
-	}
-}
-
 func ReadFile(filePath string) *Media {
 
 	file, err := os.Open(filePath)
@@ -364,23 +351,24 @@ func (m *Media) forceChannels(groupName string, channelNames []string) {
 }
 
 func (m *Media) ApplyGroupsForcing() {
-	groupsConf := Conf.Get("groups") //.GetStringMap("groups")
-	if groupsConf == nil {
-		return
-	}
 
-	switch groupsConf.(type) {
-	case []interface{}:
-		break
-	default:
-		return
-	}
+	groupsConf := cfg.GetGroups()
 
-	for _, item := range groupsConf.([]interface{}) {
+	for _, item := range groupsConf {
+
 		switch item.(type) {
 		case map[string]interface{}:
-			m.forceChannels(util.GetStringKey("name", item.(map[string]interface{})), util.GetStringArrayKey("force", item.(map[string]interface{})))
-		default:
+			name := util.GetValue("name", item.(map[string]interface{}), "")
+
+			force := util.GetValueArray("force", item.(map[string]interface{}), []string{})
+			begin := util.GetValueArray("begin", item.(map[string]interface{}), []string{})
+			end := util.GetValueArray("end", item.(map[string]interface{}), []string{})
+
+			force = append(force, begin...)
+			force = append(force, end...)
+
+			m.forceChannels(name, force)
+
 			break
 		}
 	}
@@ -443,7 +431,7 @@ func (m *Media) FilterForeign(groupName string) {
 }
 
 func (m *Media) OrderGroups() {
-	order := Conf.GetStringSlice("group_order")
+	order := cfg.GetGroupOrder()
 	if order == nil || len(order) == 0 {
 		return
 	}
@@ -480,7 +468,7 @@ func (m *Media) PrintGroups() {
 func (m *Media) ValidateHighRes() {
 	validationList := make([]string, 0, 10)
 
-	groupsConf := Conf.GetStringSlice("group_hd_split")
+	groupsConf := cfg.GetHDSplit()
 
 	for _, g := range groupsConf {
 		group, _ := m.FindGroup(g)

@@ -3,7 +3,7 @@ package ffprobe
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os/exec"
 )
 

@@ -19,3 +19,4 @@ order.yaml
 output
 build
 **.env
+**.log

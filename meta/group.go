@@ -1,7 +1,8 @@
 package meta
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
+	"m3u8/cfg"
 	"m3u8/util"
 	"sort"
 	"strings"
@@ -28,10 +29,10 @@ func (g *Group) mergeChannels(group *Group) {
 
 func (g *Group) sortChannels() {
 
-	groupConf := g.getConfig()
+	groupConf := cfg.GetGroupConfig(g.Name)
 
-	begin := util.GetStringArrayKey("begin", groupConf)
-	end := util.GetStringArrayKey("end", groupConf)
+	begin := util.GetValueArray("begin", groupConf, []string{})
+	end := util.GetValueArray("end", groupConf, []string{})
 
 	beginChannels := make([]*Channel, 0, len(begin))
 	endChannels := make([]*Channel, 0, len(end))
@@ -94,26 +95,4 @@ func (g *Group) extractChannel(index int) *Channel {
 	g.Channels = g.Channels[:last]
 
 	return chnl
-}
-
-func (g *Group) getConfig() map[string]interface{} {
-	groupsConf := Conf.Get("groups")
-	if groupsConf == nil {
-		return nil
-	}
-
-	for _, item := range groupsConf.([]interface{}) {
-		switch item.(type) {
-		case map[string]interface{}:
-			vals := item.(map[string]interface{})
-			grpName := vals["name"]
-			if grpName == g.Name {
-				return vals
-			}
-			break
-		default:
-			break
-		}
-	}
-	return nil
 }

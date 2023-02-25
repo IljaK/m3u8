@@ -1,62 +1,76 @@
 package util
 
-func GetStringArrayKey(key string, val map[string]interface{}) []string {
-	aInterface := GetInterfaceArray(key, val)
-	if aInterface == nil {
-		return []string{}
+func GetValue[V comparable, T any](key V, val map[V]interface{}, defVal T) T {
+	if val == nil {
+		return defVal
 	}
-
-	aString := make([]string, len(aInterface))
-	for i, v := range aInterface {
-		aString[i] = v.(string)
-	}
-	return aString
-}
-
-func GetStringKey(key string, val map[string]interface{}) string {
-	aInterface, ok := val[key].(interface{})
+	aInterface, ok := val[key]
 	if !ok {
-		return ""
+		return defVal
 	}
-	return aInterface.(string)
+	switch aInterface.(type) {
+	case T:
+		return aInterface.(T)
+	}
+	return defVal
 }
 
-func GetIntKey(key string, val map[string]interface{}) int {
-	aInterface, ok := val[key].(interface{})
+func GetValueArray[T any](key string, val map[string]interface{}, def []T) []T {
+	if val == nil {
+		return nil
+	}
+
+	aInterface, ok := val[key]
 	if !ok {
-		return 0
+		return def
 	}
-	return aInterface.(int)
+
+	var iArr []interface{}
+	switch aInterface.(type) {
+	case []interface{}:
+		iArr = aInterface.([]interface{})
+	default:
+		return def
+	}
+
+	arr := make([]T, len(iArr))
+	for i, v := range iArr {
+
+		switch v.(type) {
+		case T:
+			arr[i] = v.(T)
+		}
+	}
+	return arr
 }
 
-func GetBoolKey(key string, val map[string]interface{}) bool {
-	aInterface, ok := val[key].(interface{})
-	if !ok {
-		return false
+func GetTypedMap[V comparable, T any](val map[V]interface{}, def T) map[V]T {
+	mp := map[V]T{}
+	for k, v := range val {
+		switch v.(type) {
+		case T:
+			mp[k] = v.(T)
+		}
 	}
-	return aInterface.(bool)
+	return mp
 }
 
-func GetInterfaceKey(key string, val map[string]interface{}) interface{} {
-	aInterface, ok := val[key].(interface{})
+func GetValueMap[V comparable, T any](key string, val map[string]interface{}, def map[V]T) map[V]T {
+	if val == nil {
+		return def
+	}
+	aInterface, ok := val[key]
 	if !ok {
 		return nil
 	}
-	return aInterface
-}
 
-func GetInterfaceArray(key string, val map[string]interface{}) []interface{} {
-	aInterface, ok := val[key].([]interface{})
-	if !ok {
-		return nil
+	switch aInterface.(type) {
+	case map[V]T:
+		return aInterface.(map[V]T)
+	case map[V]interface{}:
+		var dd T
+		return GetTypedMap(aInterface.(map[V]interface{}), dd)
 	}
-	return aInterface
-}
 
-func GetInterfaceMapKey(key string, val map[string]interface{}) map[string]interface{} {
-	aInterface, ok := val[key].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	return aInterface
+	return def
 }

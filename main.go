@@ -1,17 +1,15 @@
 package main
 
 import (
-	"github.com/spf13/viper"
+	log "github.com/sirupsen/logrus"
 	"io/fs"
 	"io/ioutil"
-	"log"
+	"m3u8/cfg"
 	"m3u8/db"
 	"m3u8/meta"
 	"m3u8/util"
 	"sync"
 )
-
-var Conf *viper.Viper
 
 func processChannels(media *meta.Media) {
 
@@ -70,6 +68,15 @@ func compareResult(fileName string) {
 
 func loadPlayList(url string, outFileName string, providerType string) {
 	if url == "" {
+		log.Errorf("invalid url in list")
+		return
+	}
+	if outFileName == "" {
+		log.Errorf("invalid outFileName in list")
+		return
+	}
+	if providerType == "" {
+		log.Errorf("invalid providerType in list")
 		return
 	}
 
@@ -85,21 +92,13 @@ func loadPlayList(url string, outFileName string, providerType string) {
 func processListConfig() {
 	wg := sync.WaitGroup{}
 
-	lists := meta.Conf.Get("lists")
+	lists := cfg.GetLists()
 	if lists == nil {
 		log.Println("Empty lists config")
 		return
 	}
 
-	switch lists.(type) {
-	case []interface{}:
-		break
-	default:
-		log.Println("Invalid \"lists\" config")
-		return
-	}
-
-	for _, item := range lists.([]interface{}) {
+	for _, item := range lists {
 		switch item.(type) {
 		case map[string]interface{}:
 			wg.Add(1)
@@ -113,17 +112,16 @@ func processListConfig() {
 
 func processList(wg *sync.WaitGroup, cfg map[string]interface{}) {
 	defer wg.Done()
-	loadPlayList(util.GetStringKey("url", cfg), util.GetStringKey("out_file", cfg), util.GetStringKey("type", cfg))
+	loadPlayList(util.GetValue("url", cfg, ""), util.GetValue("out_file", cfg, ""), util.GetValue("type", cfg, ""))
 }
 
 func main() {
 
-	meta.LoadConfig()
+	cfg.LoadConfig()
 	err := db.Init("postgres://iljakrusman:iljakrusman@127.0.0.1:5432/m3u8?sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
-	log.Println("DB connected")
 	log.Println("Processing data...")
 	processListConfig()
 	//readInputFiles()

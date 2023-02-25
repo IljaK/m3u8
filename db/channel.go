@@ -3,7 +3,7 @@ package db
 import (
 	"errors"
 	"github.com/jackc/pgx/v4"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type Channel struct {

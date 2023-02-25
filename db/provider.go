@@ -2,7 +2,7 @@ package db
 
 import (
 	"errors"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func QueryUpdateProvider(channel *Channel, provider string) error {

@@ -1,7 +1,7 @@
 package meta
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 	"m3u8/db"
 	"m3u8/ffprobe"
 	"m3u8/util"
@@ -47,7 +47,7 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	if content != nil && len(content) > 0 {
 		c.setData(content[0])
 		if len(content) > 1 {
-			c.Name = content[1]
+			c.Name = strings.TrimSpace(content[1])
 		}
 	}
 
@@ -87,7 +87,9 @@ func (c *Channel) SetName(nameData string, groupName string) {
 			log.Println(err)
 		}
 	} else {
-		if channelData.Width == 0 || channelData.Height == 0 || channelData.Name != c.Name {
+		validDimensions := true
+		if channelData.Width == 0 || channelData.Height == 0 {
+			validDimensions = false
 			c.loadMeta()
 			channelData.Width = c.Width
 			channelData.Height = c.Height
@@ -96,12 +98,17 @@ func (c *Channel) SetName(nameData string, groupName string) {
 			c.Height = channelData.Height
 		}
 
-		channelData.Name = c.Name
-		channelData.HistoryDays = c.HistoryDays
+		if (!validDimensions && (channelData.Width != 0 || channelData.Height != 0)) || channelData.Name != c.Name || channelData.HistoryDays != c.HistoryDays {
+			// 100% correct set property
+			log.Printf("[%s] (%dx%d), %d -> [%s] (%dx%d), %d", channelData.Name, channelData.Width, channelData.Height, channelData.HistoryDays, c.Name, c.Width, c.Height, c.HistoryDays)
 
-		err = db.QueryUpdateChannel(channelData)
-		if err != nil {
-			log.Println(err)
+			channelData.Name = c.Name
+			channelData.HistoryDays = c.HistoryDays
+
+			err = db.QueryUpdateChannel(channelData)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 		err = db.QueryUpdateProvider(channelData, c.ProviderType)
 		if err != nil {
