@@ -6,6 +6,7 @@ import (
 	"m3u8/ffprobe"
 	"m3u8/util"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -50,7 +51,11 @@ func (c *Channel) SetName(nameData string, groupName string) {
 		}
 	}
 
-	c.SortingName = strings.ToLower(strings.TrimSpace(c.Name))
+	reg, err := regexp.Compile(`(^([0-9]+))|(\.|\+|-|\s|,|_)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.SortingName = strings.ToLower(reg.ReplaceAllString(c.Name, ""))
 
 	u, err := url.Parse(c.Url)
 	splittedPath := strings.Split(u.Path, "/")
