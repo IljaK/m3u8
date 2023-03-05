@@ -40,8 +40,9 @@ func (g *Group) sortChannels() {
 	if begin != nil {
 		for i := 0; i < len(begin); i++ {
 			_, targetIndex := g.FindChannel(begin[i])
-			if targetIndex >= 0 {
+			for targetIndex >= 0 {
 				beginChannels = append(beginChannels, g.extractChannel(targetIndex))
+				_, targetIndex = g.FindChannel(begin[i])
 			}
 		}
 	}

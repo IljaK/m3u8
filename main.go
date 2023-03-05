@@ -15,9 +15,15 @@ func processChannels(media *meta.Media) {
 
 	//media.PrintGroups()
 
+	// Old way:
+	//media.ApplyGroupsForcing()
+	//media.ValidateHighRes()
+	//media.SortGroups()
+	//media.OrderGroups()
+
 	media.ApplyGroupsForcing()
-	media.ValidateHighRes()
 	media.SortGroups()
+	media.ValidateHighRes()
 	media.OrderGroups()
 }
 

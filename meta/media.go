@@ -250,7 +250,7 @@ func ReadUrl(url string, providerType string) *Media {
 	_ = resp.Body.Close()
 
 	if err != nil {
-		log.Printf("Failed to read data: %v\n", err)
+		log.Printf("Failed to read url %s data: %v\n", url, err)
 		return nil
 	}
 
