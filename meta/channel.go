@@ -21,9 +21,35 @@ type Channel struct {
 	Width       int
 	Height      int
 
-	ProviderType string
+	providerHost string
+	providerName string
+
+	ForceReloadData bool
 
 	meta *Media
+}
+
+func (c *Channel) GetProviderHost() string {
+	if c.providerHost != "" {
+		return c.providerHost
+	}
+	if c.Url == "" {
+		return ""
+	}
+	values, err := url.Parse(c.Url)
+
+	if err != nil {
+		return ""
+	}
+
+	args := strings.Split(values.Host, ".")
+	if len(args) > 1 {
+		return strings.Join(args[1:], ".")
+	}
+	return strings.Join(args, ".")
+}
+func (c *Channel) GetProviderName(data string) {
+	c.InfoData = data
 }
 
 func (c *Channel) setData(data string) {
@@ -69,53 +95,64 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	//	log.Println("Test!")
 	//}
 
-	channelData, err := db.QueryGetChannelInfo(remoteId)
+	channelData, err := db.QueryGetChannelInfo(remoteId, c.GetProviderHost())
 
-	if channelData == nil {
+	if channelData == nil || channelData.Width == 0 || channelData.Height == 0 || c.ForceReloadData {
 		c.loadMeta()
-
-		err = db.QueryAddChannelInfo(&db.Channel{
-			Id:          0,
-			Name:        c.Name,
-			RemoteId:    remoteId,
-			Width:       c.Width,
-			Height:      c.Height,
-			HistoryDays: c.HistoryDays,
-			Group:       groupName,
-		})
-		if err != nil {
-			log.Println(err)
-		}
 	} else {
-		validDimensions := true
-		if channelData.Width == 0 || channelData.Height == 0 {
-			validDimensions = false
-			c.loadMeta()
-			channelData.Width = c.Width
-			channelData.Height = c.Height
-		} else {
-			c.Width = channelData.Width
-			c.Height = channelData.Height
-		}
+		c.Width = channelData.Width
+		c.Height = channelData.Height
+	}
 
-		if (!validDimensions && (channelData.Width != 0 || channelData.Height != 0)) || channelData.Name != c.Name || channelData.HistoryDays != c.HistoryDays {
-			// 100% correct set property
-			log.Printf("[%s] (%dx%d), %d -> [%s] (%dx%d), %d", channelData.Name, channelData.Width, channelData.Height, channelData.HistoryDays, c.Name, c.Width, c.Height, c.HistoryDays)
-
-			channelData.Name = c.Name
-			channelData.HistoryDays = c.HistoryDays
-
-			err = db.QueryUpdateChannel(channelData)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-		err = db.QueryUpdateProvider(channelData, c.ProviderType)
+	dbChannel := &db.Channel{
+		Id:          0,
+		RemoteId:    remoteId,
+		Width:       c.Width,
+		Height:      c.Height,
+		HistoryDays: c.HistoryDays,
+		ChannelName: db.ChannelName{
+			Id:    0,
+			Name:  c.Name,
+			Group: groupName,
+			Provider: db.Provider{
+				Host: c.GetProviderHost(),
+			},
+		},
+	}
+	if c.isNeedUpdate(dbChannel) || dbChannel.ChannelName.Group != groupName {
+		err = db.QueryInsertOrUpdateChannel(dbChannel)
 		if err != nil {
 			log.Println(err)
 		}
 	}
+}
 
+func (c *Channel) isNeedUpdate(dbChannel *db.Channel) bool {
+	if dbChannel == nil {
+		return true
+	}
+	if dbChannel.Id == 0 {
+		return true
+	}
+	if dbChannel.Width != c.Width {
+		return true
+	}
+	if dbChannel.Height != c.Height {
+		return true
+	}
+	if dbChannel.HistoryDays != c.HistoryDays {
+		return true
+	}
+	if dbChannel.ChannelName.Id == 0 {
+		return true
+	}
+	if dbChannel.ChannelName.Name != c.Name {
+		return true
+	}
+	if dbChannel.ChannelName.Provider.Id == 0 {
+		return true
+	}
+	return false
 }
 
 func (c *Channel) loadMeta() *ffprobe.MetaData {
@@ -123,7 +160,7 @@ func (c *Channel) loadMeta() *ffprobe.MetaData {
 		return nil
 	}
 
-	media := ReadUrl(c.Url, c.ProviderType)
+	media := ReadUrl(c.Url, c.ForceReloadData)
 
 	if media != nil && len(media.Records) > 0 {
 

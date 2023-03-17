@@ -8,6 +8,9 @@ import (
 var dbase *DBase = nil
 
 func Init(dbUri string) error {
+	if dbUri == "" {
+		return errors.New("empty DB url")
+	}
 	if dbase != nil && dbase.connection != nil {
 		dbase.connection.Close()
 	}

@@ -2,9 +2,8 @@ package main
 
 import (
 	log "github.com/sirupsen/logrus"
-	"io/fs"
-	"io/ioutil"
 	"m3u8/cfg"
+	"m3u8/cmd"
 	"m3u8/db"
 	"m3u8/meta"
 	"m3u8/util"
@@ -27,68 +26,23 @@ func processChannels(media *meta.Media) {
 	media.OrderGroups()
 }
 
-func processFile(wg *sync.WaitGroup, file fs.FileInfo) {
-	defer wg.Done()
-	media := meta.ReadFile("input/" + file.Name())
-
-	if media == nil {
-		return
-	}
-
-	processChannels(media)
-	media.WriteFile("output/" + file.Name())
-}
-
-func readInputFiles() {
-	files, err := ioutil.ReadDir("input/")
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	var wg sync.WaitGroup
-	for _, file := range files {
-		wg.Add(1)
-		go processFile(&wg, file)
-	}
-	wg.Wait()
-}
-
-func compareResult(fileName string) {
-	mediaIn := meta.ReadFile("input/" + fileName)
-	if mediaIn == nil {
-		return
-	}
-
-	mediaOut := meta.ReadFile("output/" + fileName)
-	if mediaOut == nil {
-		return
-	}
-
-	for _, record := range mediaIn.Records {
-		if mediaOut.FindRecord(record.Url) == nil {
-			log.Printf("Missing:\n%s\n%s\n%s\n\n", record.NameData, record.GroupName, record.Url)
-		}
-	}
-}
-
-func loadPlayList(url string, providerType string) {
+func loadPlayList(url string, output string, forceReloadChannelData bool) {
 	if url == "" {
 		log.Errorf("invalid url in list")
 		return
 	}
-	if providerType == "" {
-		log.Errorf("invalid providerType in list")
+	if output == "" {
+		log.Errorf("invalid output list")
 		return
 	}
 
-	media := meta.ReadUrl(url, providerType)
+	media := meta.ReadUrl(url, forceReloadChannelData)
 
 	if media == nil {
 		return
 	}
 	processChannels(media)
-	media.WriteFile("output/" + providerType + ".m3u8")
+	media.WriteFile(output)
 }
 
 func processListConfig() {
@@ -114,13 +68,21 @@ func processListConfig() {
 
 func processList(wg *sync.WaitGroup, cfg map[string]interface{}) {
 	defer wg.Done()
-	loadPlayList(util.GetValue("url", cfg, ""), util.GetValue("type", cfg, ""))
+	loadPlayList(util.GetValue("url", cfg, ""),
+		util.GetValue("output", cfg, ""),
+		cmd.ForceReDownload)
 }
 
 func main() {
 
-	cfg.LoadConfig()
-	err := db.Init("postgres://iljakrusman:iljakrusman@127.0.0.1:5432/m3u8?sslmode=disable")
+	err := cmd.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	cfg.LoadConfig(cmd.ConfPath, cmd.EnvPath)
+
+	err = db.Init(cfg.GetEnvString("DB_URI", ""))
 	if err != nil {
 		panic(err)
 	}

@@ -60,8 +60,8 @@ func (m *multiGroup) Contains(channelName string) bool {
 }
 
 type Media struct {
-	providerType  string
-	validFileType bool
+	forceReloadChannelData bool
+	validFileType          bool
 
 	Version        string // #EXT-X-VERSION:3
 	MediaSequence  string // #EXT-X-MEDIA-SEQUENCE:20456
@@ -99,8 +99,8 @@ func (m *Media) addGroup(record *Record) {
 	}
 
 	channel := Channel{
-		Url:          record.Url,
-		ProviderType: m.providerType,
+		Url:             record.Url,
+		ForceReloadData: m.forceReloadChannelData,
 	}
 	channel.SetName(record.NameData, record.GroupName)
 
@@ -209,33 +209,7 @@ func (m *Media) CheckHighRes(groupName string, fullSearch bool, threads int) {
 	hiResGroup.Channels = separated.highResChannels
 }
 
-func ReadFile(filePath string) *Media {
-
-	file, err := os.Open(filePath)
-
-	if err != nil {
-		log.Printf("Failed to open file: %v\n", err)
-		return nil
-	}
-
-	defer file.Close()
-
-	var media *Media
-	media, err = readRecords(file)
-
-	if err != nil {
-		log.Printf("Failed to read data: %v\n", err)
-		return nil
-	}
-
-	if media != nil {
-		media.structRecords()
-	}
-
-	return media
-}
-
-func ReadUrl(url string, providerType string) *Media {
+func ReadUrl(url string, forceReloadChannelData bool) *Media {
 
 	http.DefaultClient.Timeout = 10 * time.Second
 	resp, err := http.Get(url)
@@ -246,7 +220,7 @@ func ReadUrl(url string, providerType string) *Media {
 
 	var media *Media
 	media, err = readRecords(resp.Body)
-	media.providerType = providerType
+	media.forceReloadChannelData = forceReloadChannelData
 	_ = resp.Body.Close()
 
 	if err != nil {

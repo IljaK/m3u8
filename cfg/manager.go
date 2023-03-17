@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"m3u8/util"
+	"strings"
 )
 
 var conf map[string]interface{}
+var viperEnv *viper.Viper
 
 //var Conf *viper.Viper
 
-func LoadConfig() {
+func LoadConfig(configFile string, envFile string) {
 	vp := viper.New()
-	vp.SetConfigName("order")
+	vp.SetConfigFile(configFile)
 	vp.SetConfigType("yaml")
-	vp.AddConfigPath(".")
 	err := vp.ReadInConfig() // Find and read the config file
 	if err != nil {          // Handle errors reading the config file
 		panic(err)
@@ -23,6 +24,14 @@ func LoadConfig() {
 	if err != nil { // Handle errors reading the config file
 		panic(fmt.Errorf("config read error: %v", err))
 	}
+
+	viperEnv = viper.New()
+	viperEnv.SetConfigType("env")
+	viperEnv.SetConfigFile(envFile)
+
+	viperEnv.AutomaticEnv()
+
+	err = viperEnv.ReadInConfig()
 }
 
 func GetGroups() []interface{} {
@@ -38,6 +47,15 @@ func GetHDSplit() []string {
 }
 func GetGroupOrder() []string {
 	return util.GetValueArray("group_order", conf, []string{})
+}
+func GetEnvString(key string, defVal string) string {
+	key = strings.ToLower(key)
+	viperEnv.GetString(key)
+	if !viperEnv.IsSet(key) {
+		return defVal
+	}
+
+	return viperEnv.GetString(key)
 }
 
 func GetGroupConfig(groupName string) map[string]interface{} {

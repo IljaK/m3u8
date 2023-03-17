@@ -2,10 +2,10 @@
 lists:
   -
     url: 'http://...'
-    type: 'edem'
+    output: "./output/name1.m3u8"
   -
     url: 'http://...'
-    type: 'vidprive'
+    output: "./output/name2.m3u8"
 
 group_hd_split: ['кино', 'спорт']
 
