@@ -4,8 +4,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ConfPath string
-var EnvPath string
+var ConfFile string
+var EnvFile string
+var LogFile string
 var ForceReDownload bool
 
 var confCmd = &cobra.Command{
@@ -15,8 +16,9 @@ var confCmd = &cobra.Command{
 }
 
 func Init() error {
-	confCmd.Flags().StringVarP(&ConfPath, "conf", "c", "./order.yaml", "order config file path")
-	confCmd.Flags().StringVarP(&EnvPath, "env", "e", "./m3u8.env", "env file path")
+	confCmd.Flags().StringVarP(&ConfFile, "conf", "c", "./order.yaml", "order config file path")
+	confCmd.Flags().StringVarP(&EnvFile, "env", "e", "./m3u8.env", "env file path")
+	confCmd.Flags().StringVarP(&LogFile, "log", "l", "", "log file path")
 	confCmd.Flags().BoolVarP(&ForceReDownload, "force", "f", false, "force reload channels dimensions")
 	return confCmd.Execute()
 }

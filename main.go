@@ -2,11 +2,13 @@ package main
 
 import (
 	log "github.com/sirupsen/logrus"
+	"io"
 	"m3u8/cfg"
 	"m3u8/cmd"
 	"m3u8/db"
 	"m3u8/meta"
 	"m3u8/util"
+	"os"
 	"sync"
 )
 
@@ -73,6 +75,21 @@ func processList(wg *sync.WaitGroup, cfg map[string]interface{}) {
 		cmd.ForceReDownload)
 }
 
+func setupLog(filePath string) {
+
+	if filePath != "" {
+		log.SetFormatter(&log.JSONFormatter{})
+		f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.SetOutput(io.Writer(f))
+		//mw := io.MultiWriter(os.Stdout, f)
+		//log.SetOutput(mw)
+	}
+}
+
 func main() {
 
 	err := cmd.Init()
@@ -80,7 +97,9 @@ func main() {
 		panic(err)
 	}
 
-	cfg.LoadConfig(cmd.ConfPath, cmd.EnvPath)
+	setupLog(cmd.LogFile)
+
+	cfg.LoadConfig(cmd.ConfFile, cmd.EnvFile)
 
 	err = db.Init(cfg.GetEnvString("DB_URI", ""))
 	if err != nil {
