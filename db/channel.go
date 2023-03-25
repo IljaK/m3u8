@@ -158,7 +158,7 @@ func QueryGetTvgArray() ([]*TvgChannel, error) {
 	rows, err := QueryRows(`select c.tvg_name, array_agg(DISTINCT cn.history_days)
 from channel c
 left join channel_name cn on c.id = cn.channel_id
-where c.tvg_name is not null and c.tvg_name != ''
+where c.tvg_name is not null and c.tvg_name != '' and c.tvg_generate = true
 group by c.tvg_name`)
 
 	if err != nil {

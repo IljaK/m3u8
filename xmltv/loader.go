@@ -20,6 +20,7 @@ import (
 )
 
 const xmldateformat = "20060102150400 -0700"
+const MaxHistoryDays = 2
 
 type XmlTv struct {
 	XMLName       xml.Name       `xml:"tv"`
@@ -77,7 +78,12 @@ func (x *TvgChannel) filterProgramme() {
 	t := time.Now()
 	midnight := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 
-	from := midnight.AddDate(0, 0, -x.dbChannel.HistoryDays)
+	history := x.dbChannel.HistoryDays
+	if history > MaxHistoryDays {
+		history = MaxHistoryDays
+	}
+
+	from := midnight.AddDate(0, 0, -history)
 	to := midnight.AddDate(0, 0, 2)
 
 	for i := len(x.Programme) - 1; i >= 0; i-- {
@@ -151,6 +157,7 @@ func GenerateTvGuideFromUrl(conf map[string]string) error {
 	url := conf["input_url"]
 	inFileName := conf["input_path"]
 	outputName := conf["epg_path"]
+	outputLogChannels := conf["channels_out"]
 
 	log.Printf("Downloading EPG %s", url)
 	n, err := DownloadFullTvGuide(url, inFileName)
@@ -176,18 +183,22 @@ func GenerateTvGuideFromUrl(conf map[string]string) error {
 		inFileName = newfilename
 	}
 
-	return GenerateTvGuide(inFileName, outputName)
+	return GenerateTvGuide(inFileName, outputName, outputLogChannels)
 }
 
-func GenerateTvGuide(fileName string, outputName string) error {
+func GenerateTvGuide(fileName string, outputName string, outputLogChannels string) error {
 	log.Println("Generating TV Guide")
-	tvg, err := extractTvGuide(fileName)
+	tvg, err := extractTvGuide(fileName, outputLogChannels)
 	if err != nil {
 		return err
 	}
 
 	// Verify that there is used only single name for channel
 	for i := len(tvg) - 1; i >= 0; i-- {
+		if tvg[i].Channel == nil {
+			continue
+		}
+
 		for j := i - 1; j >= 0; j-- {
 			if tvg[i].dbChannel != tvg[j].dbChannel {
 				if tvg[i].Channel == tvg[j].Channel {
@@ -207,7 +218,7 @@ func GenerateTvGuide(fileName string, outputName string) error {
 		xmlTv.ProgrammeList = append(xmlTv.ProgrammeList, channel.Programme...)
 	}
 
-	data, _ := xml.MarshalIndent(xmlTv, "", " ")
+	data, _ := xml.Marshal(xmlTv)
 
 	out, err := os.Create(outputName)
 	if out != nil {
@@ -221,7 +232,7 @@ func GenerateTvGuide(fileName string, outputName string) error {
 	return err
 }
 
-func extractTvGuide(fileName string) ([]*TvgChannel, error) {
+func extractTvGuide(fileName string, logChannelsFile string) ([]*TvgChannel, error) {
 	log.Println("Extracting TV Guide")
 	tvg, err := db.QueryGetTvgArray()
 	if err != nil {
@@ -241,6 +252,17 @@ func extractTvGuide(fileName string) ([]*TvgChannel, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("open file error: %v", err)
+	}
+
+	var channelsFile *os.File
+	if logChannelsFile != "" {
+		channelsFile, err = os.Create(logChannelsFile)
+		if channelsFile != nil {
+			defer channelsFile.Close()
+		}
+		if err != nil {
+			log.Printf("Failed to create channels log file: %v", err)
+		}
 	}
 
 	decoder := xml.NewDecoder(f)
@@ -270,8 +292,10 @@ func extractTvGuide(fileName string) ([]*TvgChannel, error) {
 				}
 
 				// TODO: Collect tvguide DB?
-				//chnls := strings.Join(c.Name, ", ")
-				//log.Printf(chnls)
+				chnls := strings.Join(c.Name, ", ")
+				if channelsFile != nil {
+					channelsFile.WriteString(chnls + "\n")
+				}
 
 			} else if se.Name.Local == "programme" {
 				var p XmlProgramme
