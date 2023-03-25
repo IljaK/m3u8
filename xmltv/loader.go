@@ -180,6 +180,7 @@ func GenerateTvGuideFromUrl(conf map[string]string) error {
 }
 
 func GenerateTvGuide(fileName string, outputName string) error {
+	log.Println("Generating TV Guide")
 	tvg, err := extractTvGuide(fileName)
 	if err != nil {
 		return err
@@ -221,7 +222,7 @@ func GenerateTvGuide(fileName string, outputName string) error {
 }
 
 func extractTvGuide(fileName string) ([]*TvgChannel, error) {
-
+	log.Println("Extracting TV Guide")
 	tvg, err := db.QueryGetTvgArray()
 	if err != nil {
 		return nil, fmt.Errorf("QueryGetTvgArray error: %v", err)

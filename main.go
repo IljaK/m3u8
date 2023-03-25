@@ -105,14 +105,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Processing data...")
-
 	err = xmltv.GenerateTvGuideFromUrl(cfg.GetTvGuide())
 
 	if err != nil {
 		log.Errorf("Failed to generate Tv Guide")
 	}
 
+	log.Println("Processing play lists...")
 	processListConfig()
 	log.Println("Completed!")
 }
