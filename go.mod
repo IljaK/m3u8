@@ -1,6 +1,6 @@
 module m3u8
 
-go 1.18
+go 1.20
 
 require (
 	github.com/jackc/pgtype v1.14.0

@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"m3u8/db"
 	"m3u8/ffprobe"
@@ -14,7 +15,8 @@ import (
 type Channel struct {
 	Name        string
 	SortingName string
-	InfoData    string
+	TvgName     string
+	infoData    string
 	Url         string
 
 	HistoryDays int
@@ -25,6 +27,7 @@ type Channel struct {
 	providerName string
 
 	ForceReloadData bool
+	NoSampleLoad    bool
 
 	meta *Media
 }
@@ -48,13 +51,11 @@ func (c *Channel) GetProviderHost() string {
 	}
 	return strings.Join(args, ".")
 }
-func (c *Channel) GetProviderName(data string) {
-	c.InfoData = data
-}
 
 func (c *Channel) setData(data string) {
-	c.InfoData = data
+	c.infoData = data
 
+	// #EXTINF: 0 catchup="default" catchup-days="5", Disney Channel
 	// #EXTINF:0 tvg-rec="0",минимакс-воронины HD
 	variables := strings.Split(data, " ")
 	for _, variableRaw := range variables {
@@ -64,6 +65,21 @@ func (c *Channel) setData(data string) {
 			c.HistoryDays = int(days)
 		}
 	}
+}
+
+func (c *Channel) GetInfoData(censored bool) string {
+	// #EXTINF: 0 catchup="default" catchup-days="5",Disney Channel
+	// #EXTINF:0 tvg-rec="0",минимакс-воронины HD
+	// censored=1
+
+	result := fmt.Sprintf("#EXTINF:0 tvg-rec=\"%d\" catchup=\"shift\" catchup-days=\"%d\"", c.HistoryDays, c.HistoryDays)
+	if c.TvgName != "" {
+		result += fmt.Sprintf(" tvg-name=\"%s\"", c.TvgName)
+	}
+	if censored {
+		result += " censored=\"1\""
+	}
+	return result + "," + c.Name
 }
 
 func (c *Channel) SetName(nameData string, groupName string) {
@@ -97,29 +113,30 @@ func (c *Channel) SetName(nameData string, groupName string) {
 
 	channelData, err := db.QueryGetChannelInfo(remoteId, c.GetProviderHost())
 
-	if channelData == nil || channelData.Width == 0 || channelData.Height == 0 || c.ForceReloadData {
+	if !c.NoSampleLoad && (channelData == nil || channelData.Width == 0 || channelData.Height == 0 || c.ForceReloadData) {
 		c.loadMeta()
 	} else {
 		c.Width = channelData.Width
 		c.Height = channelData.Height
+		c.TvgName = channelData.TvgName
 	}
 
-	dbChannel := &db.Channel{
-		Id:          0,
-		RemoteId:    remoteId,
-		Width:       c.Width,
-		Height:      c.Height,
-		HistoryDays: c.HistoryDays,
-		ChannelName: db.ChannelName{
-			Id:    0,
-			Name:  c.Name,
-			Group: groupName,
-			Provider: db.Provider{
-				Host: c.GetProviderHost(),
+	if c.isNeedDBUpdate(channelData) || channelData.ChannelName.Group != groupName {
+		dbChannel := &db.Channel{
+			Id:       0,
+			RemoteId: remoteId,
+			Width:    c.Width,
+			Height:   c.Height,
+			ChannelName: db.ChannelName{
+				Id:          0,
+				Name:        c.Name,
+				HistoryDays: c.HistoryDays,
+				Group:       groupName,
+				Provider: db.Provider{
+					Host: c.GetProviderHost(),
+				},
 			},
-		},
-	}
-	if c.isNeedUpdate(dbChannel) || dbChannel.ChannelName.Group != groupName {
+		}
 		err = db.QueryInsertOrUpdateChannel(dbChannel)
 		if err != nil {
 			log.Println(err)
@@ -127,7 +144,7 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	}
 }
 
-func (c *Channel) isNeedUpdate(dbChannel *db.Channel) bool {
+func (c *Channel) isNeedDBUpdate(dbChannel *db.Channel) bool {
 	if dbChannel == nil {
 		return true
 	}
@@ -140,13 +157,13 @@ func (c *Channel) isNeedUpdate(dbChannel *db.Channel) bool {
 	if dbChannel.Height != c.Height {
 		return true
 	}
-	if dbChannel.HistoryDays != c.HistoryDays {
-		return true
-	}
 	if dbChannel.ChannelName.Id == 0 {
 		return true
 	}
 	if dbChannel.ChannelName.Name != c.Name {
+		return true
+	}
+	if dbChannel.ChannelName.HistoryDays != c.HistoryDays {
 		return true
 	}
 	if dbChannel.ChannelName.Provider.Id == 0 {
@@ -160,7 +177,7 @@ func (c *Channel) loadMeta() *ffprobe.MetaData {
 		return nil
 	}
 
-	media := ReadUrl(c.Url, c.ForceReloadData)
+	media := ReadUrl(c.Url, c.ForceReloadData, c.NoSampleLoad)
 
 	if media != nil && len(media.Records) > 0 {
 

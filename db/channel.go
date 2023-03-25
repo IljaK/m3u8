@@ -8,11 +8,11 @@ import (
 )
 
 type Channel struct {
-	Id          int
-	RemoteId    string
-	Width       int
-	Height      int
-	HistoryDays int
+	Id       int
+	TvgName  string
+	RemoteId string
+	Width    int
+	Height   int
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -21,9 +21,10 @@ type Channel struct {
 }
 
 type ChannelName struct {
-	Id    int64
-	Name  string
-	Group string
+	Id          int64
+	Name        string
+	Group       string
+	HistoryDays int
 
 	Provider Provider
 
@@ -37,20 +38,24 @@ type Provider struct {
 	Host string
 }
 
+type TvgChannel struct {
+	TvgName     string
+	HistoryDays int
+}
+
 func QueryInsertOrUpdateChannel(channel *Channel) error {
 
 	if channel == nil {
 		return errors.New("empty channel data")
 	}
 
-	row, err := QueryRow(`insert into channel(remote_id, width, height, history_days)
-	values($1, $2, $3, $4)
+	row, err := QueryRow(`insert into channel(remote_id, width, height)
+	values($1, $2, $3)
 	on conflict(remote_id) do update
 	set width = $2,
 		height = $3,
-		history_days = $4,
-		updated_at=case when (channel.width = $2 and channel.height = $3 and channel.history_days = $4) then channel.updated_at else now() end
-	returning id, created_at, updated_at;`, channel.RemoteId, channel.Width, channel.Height, channel.HistoryDays)
+		updated_at=case when (channel.width = $2 and channel.height = $3) then channel.updated_at else now() end
+	returning id, created_at, updated_at;`, channel.RemoteId, channel.Width, channel.Height)
 
 	if err != nil {
 		log.Println(err)
@@ -86,13 +91,13 @@ insert into providers(host)
 values($2)
 on conflict(host) do update set name=providers.name 
 returning id)
-insert into channel_name(channel_id, provider_id, name, group_origin)
-select $1, up.id, $3, $4
+insert into channel_name(channel_id, provider_id, name, history_days, group_origin)
+select $1, up.id, $3, $4, $5
 from updated_provider up
 on conflict(channel_id, provider_id) do update
-set name = $3, group_origin=$4, 
-    updated_at=case when (channel_name.name = $3 and channel_name.group_origin = $4) then channel_name.updated_at else now() end
-returning id, created_at, updated_at;`, channelId, channel.Provider.Host, channel.Name, channel.Group)
+set name = $3, history_days = $4, group_origin = $5, 
+    updated_at=case when (channel_name.name = $3 and channel_name.history_days = $4 and channel_name.group_origin = $5) then channel_name.updated_at else now() end
+returning id, created_at, updated_at;`, channelId, channel.Provider.Host, channel.Name, channel.HistoryDays, channel.Group)
 
 	if row == nil {
 		if err == nil {
@@ -113,12 +118,13 @@ func QueryGetChannelInfo(remoteId string, providerHost string) (*Channel, error)
 		return nil, errors.New("invalid provider")
 	}
 
-	row, err := QueryRow(`SELECT c.id, c.width, c.height, c.history_days, c.created_at, c.updated_at,
-cn.id, cn.name, cn.group_origin, cn.created_at, cn.updated_at, p.id, p.host
+	row, err := QueryRow(`SELECT c.id, c.width, c.height, c.created_at, c.updated_at, c.tvg_name,
+cn.id, cn.name, cn.history_days, cn.group_origin, cn.created_at, cn.updated_at, p.id, p.name
 from channel c
 left join providers p on p.host = $2
 left join channel_name cn on c.id = cn.channel_id and cn.provider_id = p.id
-where c.remote_id = $1;`, remoteId, providerHost)
+where c.remote_id = $1
+order by c.id, cn.updated_at DESC NULLS LAST limit 1;`, remoteId, providerHost)
 
 	if err != nil {
 		log.Println(err)
@@ -130,8 +136,8 @@ where c.remote_id = $1;`, remoteId, providerHost)
 	}
 
 	channel := Channel{RemoteId: remoteId, ChannelName: ChannelName{Provider: Provider{Host: providerHost}}}
-	err = ScanRow(row, &channel.Id, &channel.Width, &channel.Height, &channel.HistoryDays, &channel.CreatedAt, &channel.UpdatedAt,
-		&channel.ChannelName.Id, &channel.ChannelName.Name, &channel.ChannelName.Group, &channel.ChannelName.CreatedAt, &channel.ChannelName.UpdatedAt,
+	err = ScanRow(row, &channel.Id, &channel.Width, &channel.Height, &channel.CreatedAt, &channel.UpdatedAt, &channel.TvgName,
+		&channel.ChannelName.Id, &channel.ChannelName.Name, &channel.ChannelName.HistoryDays, &channel.ChannelName.Group, &channel.ChannelName.CreatedAt, &channel.ChannelName.UpdatedAt,
 		&channel.ChannelName.Provider.Id, &channel.ChannelName.Provider.Name)
 
 	if err == pgx.ErrNoRows {
@@ -143,6 +149,47 @@ where c.remote_id = $1;`, remoteId, providerHost)
 		return nil, err
 	}
 	return &channel, err
+}
+
+func QueryGetTvgArray() ([]*TvgChannel, error) {
+
+	tvgChannels := make([]*TvgChannel, 0, 10)
+
+	rows, err := QueryRows(`select c.tvg_name, array_agg(DISTINCT cn.history_days)
+from channel c
+left join channel_name cn on c.id = cn.channel_id
+where c.tvg_name is not null and c.tvg_name != ''
+group by c.tvg_name`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if rows == nil {
+		return tvgChannels, errors.New("failed to fetch tvgChannels from DB")
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+
+		tvgChannel := TvgChannel{}
+
+		var hDays []int
+		err = ScanRows(rows, &tvgChannel.TvgName, &hDays)
+
+		for _, day := range hDays {
+			if day > tvgChannel.HistoryDays {
+				tvgChannel.HistoryDays = day
+			}
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		tvgChannels = append(tvgChannels, &tvgChannel)
+	}
+	return tvgChannels, err
 }
 
 /*

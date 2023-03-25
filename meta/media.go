@@ -61,6 +61,7 @@ func (m *multiGroup) Contains(channelName string) bool {
 
 type Media struct {
 	forceReloadChannelData bool
+	noSampleLoad           bool
 	validFileType          bool
 
 	Version        string // #EXT-X-VERSION:3
@@ -101,6 +102,7 @@ func (m *Media) addGroup(record *Record) {
 	channel := Channel{
 		Url:             record.Url,
 		ForceReloadData: m.forceReloadChannelData,
+		NoSampleLoad:    m.noSampleLoad,
 	}
 	channel.SetName(record.NameData, record.GroupName)
 
@@ -209,7 +211,7 @@ func (m *Media) CheckHighRes(groupName string, fullSearch bool, threads int) {
 	hiResGroup.Channels = separated.highResChannels
 }
 
-func ReadUrl(url string, forceReloadChannelData bool) *Media {
+func ReadUrl(url string, forceReloadChannelData bool, noSampleLoad bool) *Media {
 
 	http.DefaultClient.Timeout = 10 * time.Second
 	resp, err := http.Get(url)
@@ -221,6 +223,7 @@ func ReadUrl(url string, forceReloadChannelData bool) *Media {
 	var media *Media
 	media, err = readRecords(resp.Body)
 	media.forceReloadChannelData = forceReloadChannelData
+	media.noSampleLoad = noSampleLoad
 	_ = resp.Body.Close()
 
 	if err != nil {
@@ -262,16 +265,22 @@ func (m *Media) structRecords() {
 	}
 }
 
-func (m *Media) WriteFile(filePath string) {
+func (m *Media) WriteFile(filePath string, epgUrl string) {
 	f, err := os.Create(filePath)
+
+	if f != nil {
+		defer f.Close()
+	}
 
 	if err != nil {
 		panic(err)
 	}
 
-	defer f.Close()
-
-	_, err = f.WriteString("#EXTM3U\n")
+	if epgUrl == "" {
+		_, err = f.WriteString("#EXTM3U\n")
+	} else {
+		_, err = f.WriteString("#EXTM3U x-tvg-url=\"" + epgUrl + "\"\n")
+	}
 
 	if err != nil {
 		panic(err)
@@ -281,7 +290,7 @@ func (m *Media) WriteFile(filePath string) {
 		for _, channel := range group.Channels {
 
 			//  #EXTINF:0,Первый HD
-			_, err = f.WriteString("#EXTINF:" + channel.InfoData + "," + channel.Name + "\n")
+			_, err = f.WriteString(channel.GetInfoData(strings.Contains(group.Name, "взрослые")) + "\n")
 			// #EXTGRP:HD
 			_, err = f.WriteString("#EXTGRP:" + group.Name + "\n")
 			// URL

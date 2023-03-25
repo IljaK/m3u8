@@ -48,6 +48,9 @@ func GetHDSplit() []string {
 func GetGroupOrder() []string {
 	return util.GetValueArray("group_order", conf, []string{})
 }
+func GetTvGuide() map[string]string {
+	return util.GetValueMap("tvguide", conf, map[string]string{})
+}
 func GetEnvString(key string, defVal string) string {
 	key = strings.ToLower(key)
 	viperEnv.GetString(key)
