@@ -14,15 +14,6 @@ import (
 )
 
 func processChannels(media *meta.Media) {
-
-	//media.PrintGroups()
-
-	// Old way:
-	//media.ApplyGroupsForcing()
-	//media.ValidateHighRes()
-	//media.SortGroups()
-	//media.OrderGroups()
-
 	media.ApplyGroupsForcing()
 	media.SortGroups()
 	media.ValidateHighRes()
@@ -105,10 +96,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = xmltv.GenerateTvGuideFromUrl(cfg.GetTvGuide())
-
-	if err != nil {
-		log.Errorf("Failed to generate Tv Guide")
+	if !cmd.NoTvGuide {
+		err = xmltv.GenerateTvGuideFromUrl(cfg.GetTvGuide())
+		if err != nil {
+			log.Errorf("Failed to generate Tv Guide")
+		}
 	}
 
 	log.Println("Processing play lists...")

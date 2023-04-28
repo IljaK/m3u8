@@ -113,7 +113,7 @@ func (c *Channel) SetName(nameData string, groupName string) {
 
 	channelData, err := db.QueryGetChannelInfo(remoteId, c.GetProviderHost())
 
-	if !c.NoSampleLoad && (channelData == nil || channelData.Width == 0 || channelData.Height == 0 || c.ForceReloadData) {
+	if channelData == nil || (!c.NoSampleLoad && (channelData.Width == 0 || channelData.Height == 0 || c.ForceReloadData)) {
 		c.loadMeta()
 	} else {
 		c.Width = channelData.Width
