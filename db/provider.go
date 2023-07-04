@@ -5,22 +5,51 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func QueryUpdateProvider(channel *Channel, provider string) error {
-	if channel == nil {
-		return errors.New("empty channel data")
+type Provider struct {
+	Id   int32
+	Name string
+	Host string
+}
+
+func QueryInsertOrUpdateProvider(providerHost string, providerName string) (*Provider, error) {
+	if providerHost == "" {
+		return nil, errors.New("empty provider host")
 	}
 
-	_, err := Exec(`INSERT INTO provider_channel
-(provider_type, channel_id) SELECT $2, $1
-WHERE NOT EXISTS (SELECT pc.id FROM provider_channel pc WHERE channel_id = $1 and pc.provider_type = $2);`, channel.Id, provider)
+	row, err := QueryRow(`with existing_provider AS (
+    SELECT id, host, name FROM providers WHERE host = $1),
+inserted_provider AS (
+INSERT INTO providers(host, name)
+SELECT $1, $2
+WHERE NOT EXISTS (SELECT id FROM existing_provider)
+on conflict(host) do update set name = case when providers.name is not null then providers.name else $2 end
+returning id, host, name)
+SELECT ip.id, ip.host, ip.name
+FROM   inserted_provider ip
+UNION  ALL
+SELECT p.id, p.host, p.name
+FROM existing_provider p;`, providerHost, providerName)
 
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
+		return nil, err
 	}
+
+	if row == nil {
+		if err == nil {
+			return nil, errors.New("failed to insert/update provider data")
+		}
+		return nil, err
+	}
+
+	p := Provider{}
+
+	err = ScanRow(row, &p.Id, &p.Host, &p.Name)
 
 	if err != nil {
-		err = errors.New("zero rows updated")
+		log.Error(err)
+		return nil, err
 	}
 
-	return err
+	return &p, err
 }

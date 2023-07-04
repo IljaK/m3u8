@@ -32,12 +32,6 @@ type ChannelName struct {
 	UpdatedAt time.Time
 }
 
-type Provider struct {
-	Id   int32
-	Name string
-	Host string
-}
-
 type TvgChannel struct {
 	TvgName     string
 	HistoryDays int
@@ -49,13 +43,23 @@ func QueryInsertOrUpdateChannel(channel *Channel) error {
 		return errors.New("empty channel data")
 	}
 
-	row, err := QueryRow(`insert into channel(remote_id, width, height)
-	values($1, $2, $3)
-	on conflict(remote_id) do update
-	set width = $2,
-		height = $3,
-		updated_at=case when (channel.width = $2 and channel.height = $3) then channel.updated_at else now() end
-	returning id, created_at, updated_at;`, channel.RemoteId, channel.Width, channel.Height)
+	row, err := QueryRow(`with existing_channel AS (
+UPDATE channel set width = $2, height = $3,
+	updated_at=case when (channel.width = $2 and channel.height = $3) then channel.updated_at else now() end
+	WHERE remote_id = $1
+	returning id, created_at, updated_at),
+inserted_channel AS (
+ INSERT INTO channel(remote_id, width, height)
+	 SELECT $1, $2, $3
+	 WHERE NOT EXISTS (SELECT eec.id FROM existing_channel eec)
+	 on conflict(remote_id) do update set width = $2, height = $3,
+		 updated_at=case when (channel.width = $2 and channel.height = $3) then channel.updated_at else now() end
+	 returning id, created_at, updated_at)
+SELECT ic.id, ic.created_at, ic.updated_at
+FROM   inserted_channel ic
+UNION  ALL
+SELECT ec.id, ec.created_at, ec.updated_at
+FROM existing_channel ec;`, channel.RemoteId, channel.Width, channel.Height)
 
 	if err != nil {
 		log.Println(err)
@@ -81,23 +85,41 @@ func QueryInsertOrUpdateChannel(channel *Channel) error {
 	return QueryAddOrUpdateChannelName(channel.Id, &channel.ChannelName)
 }
 
-func QueryAddOrUpdateChannelName(channelId int, channel *ChannelName) error {
-	if channel == nil {
-		return errors.New("empty channel data")
+func QueryAddOrUpdateChannelName(channelId int, channelName *ChannelName) error {
+	if channelName == nil {
+		return errors.New("empty channel name data")
 	}
 
-	row, err := QueryRow(`with updated_provider AS (
-insert into providers(host)
-values($2)
-on conflict(host) do update set name=providers.name 
-returning id)
-insert into channel_name(channel_id, provider_id, name, history_days, group_origin)
-select $1, up.id, $3, $4, $5
-from updated_provider up
-on conflict(channel_id, provider_id) do update
-set name = $3, history_days = $4, group_origin = $5, 
-    updated_at=case when (channel_name.name = $3 and channel_name.history_days = $4 and channel_name.group_origin = $5) then channel_name.updated_at else now() end
-returning id, created_at, updated_at;`, channelId, channel.Provider.Host, channel.Name, channel.HistoryDays, channel.Group)
+	p, err := QueryInsertOrUpdateProvider(channelName.Provider.Host, channelName.Provider.Name)
+
+	if err != nil {
+		return err
+	}
+
+	if p == nil {
+		return errors.New("failed to update providers data")
+	}
+
+	channelName.Provider.Id = p.Id
+	channelName.Provider.Name = p.Name
+
+	row, err := QueryRow(`with existing_channel_n AS (
+    UPDATE channel_name set name = $3, history_days = $4, group_origin = $5,
+        updated_at=case when (channel_name.name = $3 and channel_name.history_days = $4 and channel_name.group_origin = $5) then channel_name.updated_at else now() end
+    WHERE channel_id = $1 and provider_id = $2
+           returning id, created_at, updated_at),
+inserted_channel_n AS (
+ INSERT INTO channel_name(channel_id, provider_id, name, history_days, group_origin)
+     SELECT $1, $2, $3, $4, $5
+     WHERE NOT EXISTS (SELECT id FROM existing_channel_n)
+     on conflict(channel_id, provider_id) do update set name = $3, history_days = $4, group_origin = $5,
+     updated_at=case when (channel_name.name = $3 and channel_name.history_days = $4 and channel_name.group_origin = $5) then channel_name.updated_at else now() end
+     returning id, created_at, updated_at)
+SELECT icn.id, icn.created_at, icn.updated_at
+FROM   inserted_channel_n icn
+UNION  ALL
+SELECT ecn.id, ecn.created_at, ecn.updated_at
+FROM existing_channel_n ecn;`, channelId, p.Id, channelName.Name, channelName.HistoryDays, channelName.Group)
 
 	if row == nil {
 		if err == nil {
@@ -106,7 +128,7 @@ returning id, created_at, updated_at;`, channelId, channel.Provider.Host, channe
 		return err
 	}
 
-	return ScanRow(row, &channel.Id, &channel.CreatedAt, &channel.UpdatedAt)
+	return ScanRow(row, &channelName.Id, &channelName.CreatedAt, &channelName.UpdatedAt)
 }
 
 func QueryGetChannelInfo(remoteId string, providerHost string) (*Channel, error) {
