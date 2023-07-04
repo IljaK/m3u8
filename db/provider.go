@@ -3,17 +3,39 @@ package db
 import (
 	"errors"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type Provider struct {
 	Id   int32
 	Name string
 	Host string
+
+	SubDomain string
+	AccessKey string
 }
 
-func QueryInsertOrUpdateProvider(providerHost string, providerName string) (*Provider, error) {
-	if providerHost == "" {
-		return nil, errors.New("empty provider host")
+func (p *Provider) FromUri(host string, path []string) {
+
+	// http://wkejhfk.rossteleccom.net/iptv/ABCD3HG7DW38ZD/205/index.m3u8
+	// host + / + "iptv" + / + key + / + channel_id + / + file
+
+	args := strings.Split(host, ".")
+	p.SubDomain = args[0]
+	if len(args) > 1 {
+		p.Host = strings.Join(args[1:], ".")
+	} else {
+		p.Host = host
+	}
+
+	if len(path) >= 3 {
+		p.AccessKey = path[2]
+	}
+}
+
+func QueryInsertOrUpdateProvider(provider *Provider) error {
+	if provider == nil {
+		return errors.New("empty provider data")
 	}
 
 	row, err := QueryRow(`with existing_provider AS (
@@ -24,32 +46,29 @@ SELECT $1, $2
 WHERE NOT EXISTS (SELECT id FROM existing_provider)
 on conflict(host) do update set name = case when providers.name is not null then providers.name else $2 end
 returning id, host, name)
-SELECT ip.id, ip.host, ip.name
+SELECT ip.id
 FROM   inserted_provider ip
 UNION  ALL
-SELECT p.id, p.host, p.name
-FROM existing_provider p;`, providerHost, providerName)
+SELECT p.id
+FROM existing_provider p;`, provider.Host, provider.Name)
 
 	if err != nil {
 		log.Error(err)
-		return nil, err
+		return err
 	}
 
 	if row == nil {
 		if err == nil {
-			return nil, errors.New("failed to insert/update provider data")
+			return errors.New("failed to insert/update provider data")
 		}
-		return nil, err
+		return err
 	}
 
-	p := Provider{}
-
-	err = ScanRow(row, &p.Id, &p.Host, &p.Name)
+	err = ScanRow(row, &provider.Id)
 
 	if err != nil {
 		log.Error(err)
-		return nil, err
 	}
 
-	return &p, err
+	return err
 }

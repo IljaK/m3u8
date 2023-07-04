@@ -23,8 +23,8 @@ type Channel struct {
 	Width       int
 	Height      int
 
-	providerHost string
-	providerName string
+	//providerHost string
+	//providerName string
 
 	ForceReloadData bool
 	NoSampleLoad    bool
@@ -32,6 +32,7 @@ type Channel struct {
 	meta *Media
 }
 
+/*
 func (c *Channel) GetProviderHost() string {
 	if c.providerHost != "" {
 		return c.providerHost
@@ -51,6 +52,7 @@ func (c *Channel) GetProviderHost() string {
 	}
 	return strings.Join(args, ".")
 }
+*/
 
 func (c *Channel) setData(data string) {
 	c.infoData = data
@@ -99,6 +101,9 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	}
 	c.SortingName = strings.ToLower(reg.ReplaceAllString(c.Name, ""))
 
+	// http://wkejhfk.rossteleccom.net/iptv/ABCD3HG7DW38ZD/205/index.m3u8
+	// host + / + "iptv" + / + key + / + channel_id + / + file
+
 	u, err := url.Parse(c.Url)
 	splittedPath := strings.Split(u.Path, "/")
 	if len(splittedPath) < 3 {
@@ -106,12 +111,14 @@ func (c *Channel) SetName(nameData string, groupName string) {
 		return
 	}
 	remoteId := splittedPath[3]
+	provider := db.Provider{}
+	provider.FromUri(u.Host, splittedPath)
 
 	//if remoteId == "16140" {
 	//	log.Println("Test!")
 	//}
 
-	channelData, err := db.QueryGetChannelInfo(remoteId, c.GetProviderHost())
+	channelData, err := db.QueryGetChannelInfo(remoteId, &provider)
 
 	if channelData == nil || ((!c.NoSampleLoad && (channelData.Width == 0 || channelData.Height == 0)) || c.ForceReloadData) {
 		c.loadMeta()
@@ -132,9 +139,7 @@ func (c *Channel) SetName(nameData string, groupName string) {
 				Name:        c.Name,
 				HistoryDays: c.HistoryDays,
 				Group:       groupName,
-				Provider: db.Provider{
-					Host: c.GetProviderHost(),
-				},
+				Provider:    provider,
 			},
 		}
 		err = db.QueryInsertOrUpdateChannel(dbChannel)

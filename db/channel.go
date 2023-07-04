@@ -90,18 +90,15 @@ func QueryAddOrUpdateChannelName(channelId int, channelName *ChannelName) error 
 		return errors.New("empty channel name data")
 	}
 
-	p, err := QueryInsertOrUpdateProvider(channelName.Provider.Host, channelName.Provider.Name)
+	err := QueryInsertOrUpdateProvider(&channelName.Provider)
 
 	if err != nil {
 		return err
 	}
 
-	if p == nil {
+	if channelName.Provider.Id == 0 {
 		return errors.New("failed to update providers data")
 	}
-
-	channelName.Provider.Id = p.Id
-	channelName.Provider.Name = p.Name
 
 	row, err := QueryRow(`with existing_channel_n AS (
     UPDATE channel_name set name = $3, history_days = $4, group_origin = $5,
@@ -119,7 +116,7 @@ SELECT icn.id, icn.created_at, icn.updated_at
 FROM   inserted_channel_n icn
 UNION  ALL
 SELECT ecn.id, ecn.created_at, ecn.updated_at
-FROM existing_channel_n ecn;`, channelId, p.Id, channelName.Name, channelName.HistoryDays, channelName.Group)
+FROM existing_channel_n ecn;`, channelId, channelName.Provider.Id, channelName.Name, channelName.HistoryDays, channelName.Group)
 
 	if row == nil {
 		if err == nil {
@@ -131,12 +128,12 @@ FROM existing_channel_n ecn;`, channelId, p.Id, channelName.Name, channelName.Hi
 	return ScanRow(row, &channelName.Id, &channelName.CreatedAt, &channelName.UpdatedAt)
 }
 
-func QueryGetChannelInfo(remoteId string, providerHost string) (*Channel, error) {
+func QueryGetChannelInfo(remoteId string, provider *Provider) (*Channel, error) {
 
 	if remoteId == "" {
 		return nil, errors.New("zero remoteId")
 	}
-	if providerHost == "" {
+	if provider == nil {
 		return nil, errors.New("invalid provider")
 	}
 
@@ -146,7 +143,7 @@ from channel c
 left join providers p on p.host = $2
 left join channel_name cn on c.id = cn.channel_id and cn.provider_id = p.id
 where c.remote_id = $1
-order by c.id, cn.updated_at DESC NULLS LAST limit 1;`, remoteId, providerHost)
+order by c.id, cn.updated_at DESC NULLS LAST limit 1;`, remoteId, provider.Host)
 
 	if err != nil {
 		log.Println(err)
@@ -157,7 +154,7 @@ order by c.id, cn.updated_at DESC NULLS LAST limit 1;`, remoteId, providerHost)
 		return nil, errors.New("failed to fetch channel")
 	}
 
-	channel := Channel{RemoteId: remoteId, ChannelName: ChannelName{Provider: Provider{Host: providerHost}}}
+	channel := Channel{RemoteId: remoteId, ChannelName: ChannelName{Provider: *provider}}
 	err = ScanRow(row, &channel.Id, &channel.Width, &channel.Height, &channel.CreatedAt, &channel.UpdatedAt, &channel.TvgName,
 		&channel.ChannelName.Id, &channel.ChannelName.Name, &channel.ChannelName.HistoryDays, &channel.ChannelName.Group, &channel.ChannelName.CreatedAt, &channel.ChannelName.UpdatedAt,
 		&channel.ChannelName.Provider.Id, &channel.ChannelName.Provider.Name)
