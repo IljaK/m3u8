@@ -121,7 +121,7 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	channelData, err := db.QueryGetChannelInfo(remoteId, &provider)
 
 	if channelData == nil || ((!c.NoSampleLoad && (channelData.Width == 0 || channelData.Height == 0)) || c.ForceReloadData) {
-		c.loadMeta()
+		c.loadMeta(remoteId)
 	} else {
 		c.Width = channelData.Width
 		c.Height = channelData.Height
@@ -177,7 +177,7 @@ func (c *Channel) isNeedDBUpdate(dbChannel *db.Channel) bool {
 	return false
 }
 
-func (c *Channel) loadMeta() *ffprobe.MetaData {
+func (c *Channel) loadMeta(remoteId string) *ffprobe.MetaData {
 	if c.Url == "" {
 		return nil
 	}
@@ -188,7 +188,7 @@ func (c *Channel) loadMeta() *ffprobe.MetaData {
 
 		var metaData *ffprobe.MetaData
 		for i := len(media.Records) - 1; i >= 0; i-- {
-			metaData = ffprobe.LoadMetaData(media.Records[i].Url)
+			metaData = ffprobe.LoadMetaData(remoteId, media.Records[i].Url)
 			if metaData != nil {
 				vidStream := metaData.GetVideoStream()
 				if vidStream != nil && vidStream.Width != 0 && vidStream.Height != 0 {

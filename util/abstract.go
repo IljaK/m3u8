@@ -8,21 +8,18 @@ func GetValue[V comparable, T any](key V, val map[V]interface{}, defVal T) T {
 	if !ok {
 		return defVal
 	}
-	switch aInterface.(type) {
-	case T:
-		return aInterface.(T)
-	}
-	return defVal
+
+	return ToType(aInterface, defVal)
 }
 
-func GetValueArray[T any](key string, val map[string]interface{}, def []T) []T {
+func GetValueArray[T any](key string, val map[string]interface{}, defVal []T) []T {
 	if val == nil {
 		return nil
 	}
 
 	aInterface, ok := val[key]
 	if !ok {
-		return def
+		return defVal
 	}
 
 	var iArr []interface{}
@@ -30,12 +27,11 @@ func GetValueArray[T any](key string, val map[string]interface{}, def []T) []T {
 	case []interface{}:
 		iArr = aInterface.([]interface{})
 	default:
-		return def
+		return defVal
 	}
 
 	arr := make([]T, len(iArr))
 	for i, v := range iArr {
-
 		switch v.(type) {
 		case T:
 			arr[i] = v.(T)
@@ -73,4 +69,15 @@ func GetValueMap[V comparable, T any](key string, val map[string]interface{}, de
 	}
 
 	return def
+}
+
+func ToType[T any](val interface{}, defVal T) T {
+	if val == nil {
+		return defVal
+	}
+	switch val.(type) {
+	case T:
+		return val.(T)
+	}
+	return defVal
 }

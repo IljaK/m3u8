@@ -216,7 +216,11 @@ func ReadUrl(url string, forceReloadChannelData bool, noSampleLoad bool) *Media 
 	http.DefaultClient.Timeout = 10 * time.Second
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Printf("Failed to load playlist %s metadata %v\n", url, err)
+		log.Printf("Failed to load playlist %s metadata: %v\n", url, err)
+		return nil
+	}
+	if resp == nil || resp.Body == nil {
+		log.Printf("Failed to load playlist %s metadata: zero response\n", url)
 		return nil
 	}
 

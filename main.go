@@ -52,7 +52,7 @@ func processListConfig() {
 		switch item.(type) {
 		case map[string]interface{}:
 			wg.Add(1)
-			processList(&wg, item.(map[string]interface{}))
+			go processList(&wg, item.(map[string]interface{}))
 		default:
 			break
 		}
