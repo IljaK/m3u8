@@ -7,7 +7,6 @@ import (
 	"m3u8/cmd"
 	"m3u8/db"
 	"m3u8/meta"
-	"m3u8/util"
 	"m3u8/xmltv"
 	"os"
 	"sync"
@@ -20,23 +19,22 @@ func processChannels(media *meta.Media) {
 	media.OrderGroups()
 }
 
-func loadPlayList(url string, output string, epgUrl string, forceReloadChannelData bool, noSampleLoad bool) {
-	if url == "" {
+func loadPlayList(data *cfg.List, forceReloadChannelData bool, noSampleLoad bool) {
+	if data.Url == "" {
 		log.Errorf("invalid url in list")
 		return
 	}
-	if output == "" {
-		log.Errorf("invalid output list")
-		return
-	}
 
-	media := meta.ReadUrl(url, forceReloadChannelData, noSampleLoad)
+	media := meta.ReadUrl(data.Url, forceReloadChannelData, noSampleLoad)
 
 	if media == nil {
 		return
 	}
 	processChannels(media)
-	media.WriteFile(output, epgUrl)
+
+	for _, output := range data.Outputs {
+		media.WriteFile(output.FileName, data.EpgUrl, output.SkipGroups)
+	}
 }
 
 func processListConfig() {
@@ -60,10 +58,11 @@ func processListConfig() {
 	wg.Wait()
 }
 
-func processList(wg *sync.WaitGroup, cfg map[string]interface{}) {
+func processList(wg *sync.WaitGroup, cfgMap map[string]interface{}) {
 	defer wg.Done()
-	loadPlayList(util.GetValue("url", cfg, ""), util.GetValue("output", cfg, ""),
-		util.GetValue("epg_url", cfg, ""), cmd.ForceReDownload, cmd.NoSampleLoad)
+
+	loadPlayList(cfg.Load(cfgMap), cmd.ForceReDownload,
+		cmd.NoSampleLoad)
 }
 
 func setupLog(filePath string) {
@@ -81,6 +80,12 @@ func setupLog(filePath string) {
 	}
 }
 
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 
 	err := cmd.Init()
@@ -90,12 +95,10 @@ func main() {
 
 	setupLog(cmd.LogFile)
 
-	cfg.LoadConfig(cmd.ConfFile, cmd.EnvFile)
+	must(cfg.LoadConfig(cmd.ConfFile, cmd.EnvFile))
 
-	err = db.Init(cfg.GetEnvString("DB_URI", ""))
-	if err != nil {
-		panic(err)
-	}
+	must(db.Init(cfg.GetEnvString("DB_URI", "")))
+
 	if !cmd.NoTvGuide {
 		err = xmltv.GenerateTvGuideFromUrl(cfg.GetTvGuide())
 		if err != nil {

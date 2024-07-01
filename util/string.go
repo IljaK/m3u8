@@ -66,3 +66,12 @@ func AddIfNotExist(arr []string, value string) []string {
 	}
 	return append(arr, value)
 }
+
+func HasNotEmpty(arr []string) bool {
+	for i := 0; i < len(arr); i++ {
+		if len(arr[i]) > 0 {
+			return true
+		}
+	}
+	return false
+}

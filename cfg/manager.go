@@ -3,7 +3,9 @@ package cfg
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 	"m3u8/util"
+	"os"
 	"strings"
 )
 
@@ -12,18 +14,7 @@ var viperEnv *viper.Viper
 
 //var Conf *viper.Viper
 
-func LoadConfig(configFile string, envFile string) {
-	vp := viper.New()
-	vp.SetConfigFile(configFile)
-	vp.SetConfigType("yaml")
-	err := vp.ReadInConfig() // Find and read the config file
-	if err != nil {          // Handle errors reading the config file
-		panic(err)
-	}
-	err = vp.Unmarshal(&conf)
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("config read error: %v", err))
-	}
+func LoadConfig(configFile string, envFile string) error {
 
 	viperEnv = viper.New()
 	viperEnv.SetConfigType("env")
@@ -31,7 +22,24 @@ func LoadConfig(configFile string, envFile string) {
 
 	viperEnv.AutomaticEnv()
 
-	err = viperEnv.ReadInConfig()
+	err := viperEnv.ReadInConfig()
+	if err != nil {
+		return err
+	}
+
+	data, err := os.ReadFile(configFile)
+
+	if err != nil {
+		return fmt.Errorf("failed to open file %s with error: %+v", configFile, err)
+	}
+
+	err = yaml.Unmarshal(data, &conf)
+
+	if err != nil {
+		return fmt.Errorf("failed to unmarshall yaml file %s with error: %+v", configFile, err)
+	}
+
+	return nil
 }
 
 func GetGroups() []interface{} {

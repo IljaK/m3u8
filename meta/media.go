@@ -269,7 +269,21 @@ func (m *Media) structRecords() {
 	}
 }
 
-func (m *Media) WriteFile(filePath string, epgUrl string) {
+func (m *Media) WriteFiles(filePaths []string, epgUrl string, skipGroups []string) {
+	for _, path := range filePaths {
+		if len(path) == 0 {
+			continue
+		}
+		m.WriteFile(path, epgUrl, skipGroups)
+	}
+}
+
+func (m *Media) WriteFile(filePath string, epgUrl string, skipGroups []string) {
+	if filePath == "" {
+		log.Errorf("empty file path")
+		return
+	}
+
 	f, err := os.Create(filePath)
 
 	if f != nil {
@@ -277,7 +291,8 @@ func (m *Media) WriteFile(filePath string, epgUrl string) {
 	}
 
 	if err != nil {
-		panic(err)
+		log.Errorf("failed to open file: %s with error: %+v", filePath, err)
+		return
 	}
 
 	if epgUrl == "" {
@@ -287,20 +302,41 @@ func (m *Media) WriteFile(filePath string, epgUrl string) {
 	}
 
 	if err != nil {
-		panic(err)
+		log.Errorf("failed to write to file: %s with error: %+v", filePath, err)
+		return
 	}
 
 	for _, group := range m.Groups {
+		if util.Contains(skipGroups, group.Name) {
+			continue
+		}
+
+		censored := strings.Contains(group.Name, "взрослые")
+
 		for _, channel := range group.Channels {
 
 			//  #EXTINF:0,Первый HD
-			_, err = f.WriteString(channel.GetInfoData(strings.Contains(group.Name, "взрослые")) + "\n")
+			_, err = f.WriteString(channel.GetInfoData(censored) + "\n")
+			if err != nil {
+				log.Errorf("failed to write to file: %s with error: %+v", filePath, err)
+				return
+			}
 			// #EXTGRP:HD
 			_, err = f.WriteString("#EXTGRP:" + group.Name + "\n")
+			if err != nil {
+				log.Errorf("failed to write to file: %s with error: %+v", filePath, err)
+				return
+			}
 			// URL
 			_, err = f.WriteString(channel.Url + "\n")
+
+			if err != nil {
+				log.Errorf("failed to write to file: %s with error: %+v", filePath, err)
+				return
+			}
 		}
 	}
+	log.Infof("Wrote %s", filePath)
 }
 func (m *Media) forceChannels(groupName string, channelNames []string) {
 	if groupName == "" {
