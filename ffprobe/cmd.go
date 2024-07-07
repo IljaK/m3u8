@@ -6,9 +6,144 @@ import (
 	log "github.com/sirupsen/logrus"
 	utils "m3u8/util"
 	"os/exec"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
+
+/*
+	{
+	    "streams": [
+	        {
+	            "index": 0,
+	            "codec_name": "h264",
+	            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+	            "profile": "High",
+	            "codec_type": "video",
+	            "codec_tag_string": "[27][0][0][0]",
+	            "codec_tag": "0x001b",
+	            "width": 720,
+	            "height": 576,
+	            "coded_width": 720,
+	            "coded_height": 576,
+	            "closed_captions": 0,
+	            "film_grain": 0,
+	            "has_b_frames": 0,
+	            "sample_aspect_ratio": "64:45",
+	            "display_aspect_ratio": "16:9",
+	            "pix_fmt": "yuv420p",
+	            "level": 30,
+	            "chroma_location": "left",
+	            "field_order": "progressive",
+	            "refs": 1,
+	            "is_avc": "false",
+	            "nal_length_size": "0",
+	            "ts_id": "1",
+	            "ts_packetsize": "188",
+	            "id": "0xd3",
+	            "r_frame_rate": "25/1",
+	            "avg_frame_rate": "25/1",
+	            "time_base": "1/90000",
+	            "start_pts": 1004577190,
+	            "start_time": "11161.968778",
+	            "duration_ts": 900000,
+	            "duration": "10.000000",
+	            "bits_per_raw_sample": "8",
+	            "extradata_size": 46,
+	            "disposition": {
+	                "default": 0,
+	                "dub": 0,
+	                "original": 0,
+	                "comment": 0,
+	                "lyrics": 0,
+	                "karaoke": 0,
+	                "forced": 0,
+	                "hearing_impaired": 0,
+	                "visual_impaired": 0,
+	                "clean_effects": 0,
+	                "attached_pic": 0,
+	                "timed_thumbnails": 0,
+	                "non_diegetic": 0,
+	                "captions": 0,
+	                "descriptions": 0,
+	                "metadata": 0,
+	                "dependent": 0,
+	                "still_image": 0
+	            }
+	        },
+	        {
+	            "index": 1,
+	            "codec_name": "aac",
+	            "codec_long_name": "AAC (Advanced Audio Coding)",
+	            "profile": "LC",
+	            "codec_type": "audio",
+	            "codec_tag_string": "[15][0][0][0]",
+	            "codec_tag": "0x000f",
+	            "sample_fmt": "fltp",
+	            "sample_rate": "44100",
+	            "channels": 2,
+	            "channel_layout": "stereo",
+	            "bits_per_sample": 0,
+	            "initial_padding": 0,
+	            "ts_id": "1",
+	            "ts_packetsize": "188",
+	            "id": "0xdd",
+	            "r_frame_rate": "0/0",
+	            "avg_frame_rate": "0/0",
+	            "time_base": "1/90000",
+	            "start_pts": 1004578700,
+	            "start_time": "11161.985556",
+	            "duration_ts": 898612,
+	            "duration": "9.984578",
+	            "bit_rate": "132792",
+	            "disposition": {
+	                "default": 0,
+	                "dub": 0,
+	                "original": 0,
+	                "comment": 0,
+	                "lyrics": 0,
+	                "karaoke": 0,
+	                "forced": 0,
+	                "hearing_impaired": 0,
+	                "visual_impaired": 0,
+	                "clean_effects": 0,
+	                "attached_pic": 0,
+	                "timed_thumbnails": 0,
+	                "non_diegetic": 0,
+	                "captions": 0,
+	                "descriptions": 0,
+	                "metadata": 0,
+	                "dependent": 0,
+	                "still_image": 0
+	            }
+	        }
+	    ]
+	}
+*/
+
+type Fraction struct {
+	Value    string  `json:"value"`
+	Dividend int     `json:"dividend"`
+	Divisor  int     `json:"divisor"`
+	Quotient float32 `json:"quotient"`
+}
+
+func (v *Fraction) UnmarshalJSON(data []byte) error {
+
+	err := json.Unmarshal(data, &v.Value)
+	if err != nil {
+		return err
+	}
+
+	fr := strings.Split(v.Value, "/")
+	if len(fr) == 2 {
+		v.Dividend, _ = strconv.Atoi(fr[0])
+		v.Divisor, _ = strconv.Atoi(fr[1])
+		v.Quotient = float32(v.Dividend) / float32(v.Divisor)
+	}
+	return nil
+}
 
 type StreamData struct {
 	Index       int    `json:"index,omitempty"`
@@ -17,6 +152,9 @@ type StreamData struct {
 	Height      int    `json:"height,omitempty"`
 	CodedWidth  int    `json:"coded_width,omitempty"`
 	CodedHeight int    `json:"coded_height,omitempty"`
+
+	RFrameRate   Fraction `json:"r_frame_rate,omitempty"`
+	AVGFrameRate Fraction `json:"avg_frame_rate,omitempty"`
 }
 
 type FormatData struct {
@@ -86,7 +224,7 @@ func (c *metaManager) removePending(channelRemoteId string) {
 	c.pendingMutex.Lock()
 	defer c.pendingMutex.Unlock()
 
-	c.pendingLoad = utils.Remove(c.pendingLoad, channelRemoteId)
+	c.pendingLoad = utils.Remove(c.pendingLoad, channelRemoteId, false)
 }
 
 func (c *metaManager) isPending(channelRemoteId string) bool {

@@ -1,6 +1,8 @@
 package util
 
-import "strings"
+import (
+	"strings"
+)
 
 func Concat(str1 string, str2 string, sep string) string {
 
@@ -40,22 +42,32 @@ func SplitMultiple(target string, separators ...string) []string {
 	result := []string{target}
 
 	for i := 0; i < len(separators); i++ {
-		var sub []string
-		for n := 0; n < len(result); n++ {
-			sub = append(strings.Split(result[n], separators[i]))
-		}
-		result = sub
-	}
+		for n := len(result) - 1; n >= 0; n-- {
+			sub := strings.Split(result[n], separators[i])
+			if len(sub) > 1 {
+				// Clone necessary here! without it "remain" changes on next line!
+				remain := Clone(result[n+1:])
 
-	out := make([]string, 0, 10)
-	for i := 0; i < len(result); i++ {
-		trimmed := strings.TrimSpace(result[i])
-		if trimmed != "" {
-			out = append(out, trimmed)
+				sub = append(result[0:n], sub...)
+				if len(result) > n+1 {
+					sub = append(sub, remain...)
+				}
+				result = sub
+			}
 		}
 	}
+	return result
+}
 
-	return out
+func TrimEmpty(arr []string, keepOrder bool) []string {
+
+	for i := len(arr) - 1; i >= 0; i-- {
+		arr[i] = strings.TrimSpace(arr[i])
+		if arr[i] == "" {
+			arr = RemoveAt(arr, i, keepOrder)
+		}
+	}
+	return arr
 }
 
 func AddIfNotExist(arr []string, value string) []string {
@@ -65,13 +77,4 @@ func AddIfNotExist(arr []string, value string) []string {
 		}
 	}
 	return append(arr, value)
-}
-
-func HasNotEmpty(arr []string) bool {
-	for i := 0; i < len(arr); i++ {
-		if len(arr[i]) > 0 {
-			return true
-		}
-	}
-	return false
 }

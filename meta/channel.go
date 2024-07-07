@@ -22,6 +22,7 @@ type Channel struct {
 	HistoryDays int
 	Width       int
 	Height      int
+	FrameRate   float32
 
 	//providerHost string
 	//providerName string
@@ -128,12 +129,18 @@ func (c *Channel) SetName(nameData string, groupName string) {
 		c.TvgName = channelData.TvgName
 	}
 
+	if channelData == nil {
+		log.Printf("Failed to load channel meta for remoteId: %s", remoteId)
+		return
+	}
+
 	if c.isNeedDBUpdate(channelData) || channelData.ChannelName.Group != groupName {
 		dbChannel := &db.Channel{
-			Id:       0,
-			RemoteId: remoteId,
-			Width:    c.Width,
-			Height:   c.Height,
+			Id:        0,
+			RemoteId:  remoteId,
+			Width:     c.Width,
+			Height:    c.Height,
+			FrameRate: c.FrameRate,
 			ChannelName: db.ChannelName{
 				Id:          0,
 				Name:        c.Name,
@@ -194,6 +201,7 @@ func (c *Channel) loadMeta(remoteId string) *ffprobe.MetaData {
 				if vidStream != nil && vidStream.Width != 0 && vidStream.Height != 0 {
 					c.Width = vidStream.Width
 					c.Height = vidStream.Height
+					c.FrameRate = vidStream.RFrameRate.Quotient
 					return metaData
 				}
 			}

@@ -92,7 +92,7 @@ func (x *TvgChannel) filterProgramme() {
 				continue
 			}
 		}
-		x.Programme = util.RemoveAt(x.Programme, i)
+		x.Programme = util.RemoveAt(x.Programme, i, false)
 	}
 	sort.SliceStable(x.Programme, func(i, j int) bool {
 		return x.Programme[i].start.Unix() < x.Programme[j].start.Unix()

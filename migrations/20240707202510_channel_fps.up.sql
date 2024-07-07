@@ -1,0 +1,1 @@
+alter table channel add column frame_rate float default 0 not null;

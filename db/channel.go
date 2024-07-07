@@ -8,11 +8,12 @@ import (
 )
 
 type Channel struct {
-	Id       int
-	TvgName  string
-	RemoteId string
-	Width    int
-	Height   int
+	Id        int
+	TvgName   string
+	RemoteId  string
+	Width     int
+	Height    int
+	FrameRate float32
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -44,22 +45,22 @@ func QueryInsertOrUpdateChannel(channel *Channel) error {
 	}
 
 	row, err := QueryRow(`with existing_channel AS (
-UPDATE channel set width = $2, height = $3,
-	updated_at=case when (channel.width = $2 and channel.height = $3) then channel.updated_at else now() end
+UPDATE channel set width = $2, height = $3, frame_rate = $4,
+	updated_at=case when (channel.width = $2 and channel.height = $3 and frame_rate = $4) then channel.updated_at else now() end
 	WHERE remote_id = $1
 	returning id, created_at, updated_at),
 inserted_channel AS (
- INSERT INTO channel(remote_id, width, height)
-	 SELECT $1, $2, $3
+ INSERT INTO channel(remote_id, width, height, frame_rate)
+	 SELECT $1, $2, $3, $4
 	 WHERE NOT EXISTS (SELECT eec.id FROM existing_channel eec)
-	 on conflict(remote_id) do update set width = $2, height = $3,
-		 updated_at=case when (channel.width = $2 and channel.height = $3) then channel.updated_at else now() end
+	 on conflict(remote_id) do update set width = $2, height = $3, frame_rate = $4,
+		 updated_at=case when (channel.width = $2 and channel.height = $3 and channel.height = $4) then channel.updated_at else now() end
 	 returning id, created_at, updated_at)
 SELECT ic.id, ic.created_at, ic.updated_at
 FROM   inserted_channel ic
 UNION  ALL
 SELECT ec.id, ec.created_at, ec.updated_at
-FROM existing_channel ec;`, channel.RemoteId, channel.Width, channel.Height)
+FROM existing_channel ec;`, channel.RemoteId, channel.Width, channel.Height, channel.FrameRate)
 
 	if err != nil {
 		log.Println(err)
@@ -137,7 +138,7 @@ func QueryGetChannelInfo(remoteId string, provider *Provider) (*Channel, error) 
 		return nil, errors.New("invalid provider")
 	}
 
-	row, err := QueryRow(`SELECT c.id, c.width, c.height, c.created_at, c.updated_at, c.tvg_name,
+	row, err := QueryRow(`SELECT c.id, c.width, c.height, c.frame_rate, c.created_at, c.updated_at, c.tvg_name,
 cn.id, cn.name, cn.history_days, cn.group_origin, cn.created_at, cn.updated_at, p.id, p.name
 from channel c
 left join providers p on p.host = $2
@@ -155,7 +156,7 @@ order by c.id, cn.updated_at DESC NULLS LAST limit 1;`, remoteId, provider.Host)
 	}
 
 	channel := Channel{RemoteId: remoteId, ChannelName: ChannelName{Provider: *provider}}
-	err = ScanRow(row, &channel.Id, &channel.Width, &channel.Height, &channel.CreatedAt, &channel.UpdatedAt, &channel.TvgName,
+	err = ScanRow(row, &channel.Id, &channel.Width, &channel.Height, &channel.FrameRate, &channel.CreatedAt, &channel.UpdatedAt, &channel.TvgName,
 		&channel.ChannelName.Id, &channel.ChannelName.Name, &channel.ChannelName.HistoryDays, &channel.ChannelName.Group, &channel.ChannelName.CreatedAt, &channel.ChannelName.UpdatedAt,
 		&channel.ChannelName.Provider.Id, &channel.ChannelName.Provider.Name)
 
