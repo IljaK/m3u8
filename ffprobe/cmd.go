@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	utils "m3u8/util"
+	"math"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -126,7 +127,11 @@ type Fraction struct {
 	Value    string  `json:"value"`
 	Dividend int     `json:"dividend"`
 	Divisor  int     `json:"divisor"`
-	Quotient float32 `json:"quotient"`
+	Quotient float64 `json:"quotient"`
+}
+
+func (v *Fraction) RoundedQuotient() int {
+	return int(math.Round(v.Quotient))
 }
 
 func (v *Fraction) UnmarshalJSON(data []byte) error {
@@ -140,7 +145,7 @@ func (v *Fraction) UnmarshalJSON(data []byte) error {
 	if len(fr) == 2 {
 		v.Dividend, _ = strconv.Atoi(fr[0])
 		v.Divisor, _ = strconv.Atoi(fr[1])
-		v.Quotient = float32(v.Dividend) / float32(v.Divisor)
+		v.Quotient = float64(v.Dividend) / float64(v.Divisor)
 	}
 	return nil
 }

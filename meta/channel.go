@@ -22,7 +22,7 @@ type Channel struct {
 	HistoryDays int
 	Width       int
 	Height      int
-	FrameRate   float32
+	FrameRate   int
 
 	//providerHost string
 	//providerName string
@@ -122,19 +122,16 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	channelData, err := db.QueryGetChannelInfo(remoteId, &provider)
 
 	if channelData == nil || ((!c.NoSampleLoad && (channelData.Width == 0 || channelData.Height == 0)) || c.ForceReloadData) {
-		c.loadMeta(remoteId)
+		if c.loadMeta(remoteId) == nil {
+			log.Printf("Failed to load channel meta for remoteId: %s", remoteId)
+		}
 	} else {
 		c.Width = channelData.Width
 		c.Height = channelData.Height
 		c.TvgName = channelData.TvgName
 	}
 
-	if channelData == nil {
-		log.Printf("Failed to load channel meta for remoteId: %s", remoteId)
-		return
-	}
-
-	if c.isNeedDBUpdate(channelData) || channelData.ChannelName.Group != groupName {
+	if c.isNeedDBUpdate(channelData) || (channelData != nil && channelData.ChannelName.Group != groupName) {
 		dbChannel := &db.Channel{
 			Id:        0,
 			RemoteId:  remoteId,
@@ -201,7 +198,7 @@ func (c *Channel) loadMeta(remoteId string) *ffprobe.MetaData {
 				if vidStream != nil && vidStream.Width != 0 && vidStream.Height != 0 {
 					c.Width = vidStream.Width
 					c.Height = vidStream.Height
-					c.FrameRate = vidStream.RFrameRate.Quotient
+					c.FrameRate = vidStream.RFrameRate.RoundedQuotient()
 					return metaData
 				}
 			}

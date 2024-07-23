@@ -8,14 +8,26 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
 type DBase struct {
-	connection *pgxpool.Pool
+	connection   *pgxpool.Pool
+	connMutex    sync.Mutex
+	queryTimeout time.Duration
+}
+
+func (d *DBase) GetConnection() *pgxpool.Pool {
+	d.connMutex.Lock()
+	defer d.connMutex.Unlock()
+	return d.connection
 }
 
 func (d *DBase) Close() {
+	d.connMutex.Lock()
+	defer d.connMutex.Unlock()
+
 	if d.connection == nil {
 		return
 	}
@@ -23,14 +35,24 @@ func (d *DBase) Close() {
 	d.connection = nil
 }
 
-func Create(dbUri string) (*DBase, error) {
+func (d *DBase) GetStats() *pgxpool.Stat {
+	if d.connection == nil {
+		return &pgxpool.Stat{}
+	}
+	return d.connection.Stat()
+}
+
+func Create(dbUri string, queryTimeout time.Duration) (*DBase, error) {
 
 	if dbUri == "" {
 		return nil, errors.New("empty database URI")
 	}
 
 	var err error
-	var db DBase
+	db := DBase{
+		connection:   nil,
+		queryTimeout: queryTimeout,
+	}
 
 	config, err := pgxpool.ParseConfig(dbUri)
 
@@ -53,7 +75,9 @@ func Create(dbUri string) (*DBase, error) {
 	}
 
 	log.Debugln("Connecting to DB...")
-	err = db.connection.Ping(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err = db.connection.Ping(ctx)
 
 	if err != nil {
 		return nil, err
@@ -66,14 +90,18 @@ func (d *DBase) QueryRow(query string, args ...interface{}) (pgx.Row, error) {
 	if d.connection == nil {
 		return nil, errors.New("database connection is not created")
 	}
-	return d.connection.QueryRow(context.Background(), query, args...), nil
+	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
+	defer cancel()
+	return d.connection.QueryRow(ctx, query, args...), nil
 }
 
 func (d *DBase) QueryRows(query string, args ...interface{}) (pgx.Rows, error) {
 	if d.connection == nil {
 		return nil, errors.New("database connection is not created")
 	}
-	return d.connection.Query(context.Background(), query, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
+	defer cancel()
+	return d.connection.Query(ctx, query, args...)
 }
 
 func (d *DBase) IncrementExec(query string, args ...interface{}) (int, error) {
@@ -82,7 +110,10 @@ func (d *DBase) IncrementExec(query string, args ...interface{}) (int, error) {
 	}
 
 	var id int
-	row := d.connection.QueryRow(context.Background(), query, args...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
+	defer cancel()
+	row := d.connection.QueryRow(ctx, query, args...)
 	err := ScanRow(row, &id)
 
 	return id, err
@@ -92,7 +123,10 @@ func (d *DBase) Exec(query string, args ...interface{}) (int, error) {
 	if d.connection == nil {
 		return 0, errors.New("database connection is not created")
 	}
-	res, err := d.connection.Exec(context.Background(), query, args...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
+	defer cancel()
+	res, err := d.connection.Exec(ctx, query, args...)
 
 	if res == nil {
 		return 0, err
@@ -101,8 +135,11 @@ func (d *DBase) Exec(query string, args ...interface{}) (int, error) {
 }
 
 func (d *DBase) BulkInsert(table string, columns []string, rows [][]interface{}) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
+	defer cancel()
+
 	copyCount, err := d.connection.CopyFrom(
-		context.Background(),
+		ctx,
 		pgx.Identifier{table},
 		columns,
 		pgx.CopyFromRows(rows),
@@ -161,13 +198,8 @@ func getNullableReplacementValue(item interface{}, variant interface{}) interfac
 	case *pgtype.Float8:
 		return v.Float
 	case *pgtype.Numeric:
-
-		var vFloat64 float64
-
 		if v.Int != nil {
-			_ = v.AssignTo(&vFloat64)
-			return vFloat64
-			//return float64(v.Int.Int64()) * math.Pow10(int(v.Exp))
+			return NumericGetFloat64(v)
 		}
 		return float64(0)
 	case *pgtype.Text:
@@ -464,4 +496,16 @@ func Nullable(item interface{}) interface{} {
 		return val
 	}
 	return item
+}
+
+func NumericGetInt64(numeric *pgtype.Numeric) int64 {
+	var val int64
+	_ = numeric.AssignTo(&val)
+	return val
+}
+
+func NumericGetFloat64(numeric *pgtype.Numeric) float64 {
+	var val float64
+	_ = numeric.AssignTo(&val)
+	return val
 }

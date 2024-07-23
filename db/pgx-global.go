@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"github.com/jackc/pgx/v4"
+	"time"
 )
 
 var dbase *DBase = nil
@@ -16,7 +17,7 @@ func Init(dbUri string) error {
 	}
 
 	var err error
-	dbase, err = Create(dbUri)
+	dbase, err = Create(dbUri, time.Second*120)
 	if err != nil {
 		return err
 	}

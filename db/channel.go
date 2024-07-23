@@ -8,12 +8,12 @@ import (
 )
 
 type Channel struct {
-	Id        int
+	Id        int64
 	TvgName   string
 	RemoteId  string
 	Width     int
 	Height    int
-	FrameRate float32
+	FrameRate int
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -45,22 +45,25 @@ func QueryInsertOrUpdateChannel(channel *Channel) error {
 	}
 
 	row, err := QueryRow(`with existing_channel AS (
-UPDATE channel set width = $2, height = $3, frame_rate = $4,
-	updated_at=case when (channel.width = $2 and channel.height = $3 and frame_rate = $4) then channel.updated_at else now() end
-	WHERE remote_id = $1
-	returning id, created_at, updated_at),
+    select ec.* from channel ec
+    where ec.remote_id = $1
+), updated_channel AS (
+UPDATE channel c_new set width = $2, height = $3, frame_rate = $4,
+    updated_at=case when (c_new.width = $2 and c_new.height = $3 and c_new.frame_rate = $4) then c_new.updated_at else now() end
+    from existing_channel c_old
+    WHERE c_new.id = c_old.id
+    returning c_new.id, c_new.created_at, c_new.updated_at, to_jsonb(c_old) as old, to_jsonb(c_new) as new),
 inserted_channel AS (
  INSERT INTO channel(remote_id, width, height, frame_rate)
-	 SELECT $1, $2, $3, $4
-	 WHERE NOT EXISTS (SELECT eec.id FROM existing_channel eec)
-	 on conflict(remote_id) do update set width = $2, height = $3, frame_rate = $4,
-		 updated_at=case when (channel.width = $2 and channel.height = $3 and channel.height = $4) then channel.updated_at else now() end
-	 returning id, created_at, updated_at)
-SELECT ic.id, ic.created_at, ic.updated_at
+     SELECT $1, $2, $3, $4
+     WHERE NOT EXISTS (SELECT uuc.id FROM updated_channel uuc)
+     returning id, created_at, updated_at, null::jsonb as old, to_jsonb(channel) as new)
+SELECT ic.id, ic.created_at, ic.updated_at, ic.old, ic.new
 FROM   inserted_channel ic
 UNION  ALL
-SELECT ec.id, ec.created_at, ec.updated_at
-FROM existing_channel ec;`, channel.RemoteId, channel.Width, channel.Height, channel.FrameRate)
+SELECT uc.id, uc.created_at, uc.updated_at, uc.old, uc.new
+FROM updated_channel uc
+limit 1;`, channel.RemoteId, channel.Width, channel.Height, channel.FrameRate)
 
 	if err != nil {
 		log.Println(err)
@@ -73,7 +76,10 @@ FROM existing_channel ec;`, channel.RemoteId, channel.Width, channel.Height, cha
 		return err
 	}
 
-	err = ScanRow(row, &channel.Id, &channel.CreatedAt, &channel.UpdatedAt)
+	oldJson := map[string]interface{}{}
+	newJson := map[string]interface{}{}
+
+	err = ScanRow(row, &channel.Id, &channel.CreatedAt, &channel.UpdatedAt, &oldJson, &newJson)
 
 	if err != nil {
 		return err
@@ -83,10 +89,14 @@ FROM existing_channel ec;`, channel.RemoteId, channel.Width, channel.Height, cha
 		return errors.New("failed insert or update channel")
 	}
 
+	if len(oldJson) != 0 {
+		go QueryAddHistory("channel", channel.Id, oldJson, newJson)
+	}
+
 	return QueryAddOrUpdateChannelName(channel.Id, &channel.ChannelName)
 }
 
-func QueryAddOrUpdateChannelName(channelId int, channelName *ChannelName) error {
+func QueryAddOrUpdateChannelName(channelId int64, channelName *ChannelName) error {
 	if channelName == nil {
 		return errors.New("empty channel name data")
 	}
@@ -102,22 +112,25 @@ func QueryAddOrUpdateChannelName(channelId int, channelName *ChannelName) error 
 	}
 
 	row, err := QueryRow(`with existing_channel_n AS (
-    UPDATE channel_name set name = $3, history_days = $4, group_origin = $5,
-        updated_at=case when (channel_name.name = $3 and channel_name.history_days = $4 and channel_name.group_origin = $5) then channel_name.updated_at else now() end
-    WHERE channel_id = $1 and provider_id = $2
-           returning id, created_at, updated_at),
+    select ecn.* from channel_name ecn
+    WHERE ecn.channel_id = $1 and ecn.provider_id = $2
+), updated_channel_n AS (
+UPDATE channel_name cn_new set name = $3, history_days = $4, group_origin = $5,
+    updated_at=case when (cn_new.name = $3 and cn_new.history_days = $4 and cn_new.group_origin = $5) then cn_new.updated_at else now() end
+    from existing_channel_n cn_old
+    WHERE cn_new.id = cn_old.id
+    returning cn_new.id, cn_new.created_at, cn_new.updated_at, to_jsonb(cn_old) as old, to_jsonb(cn_new) as new),
 inserted_channel_n AS (
  INSERT INTO channel_name(channel_id, provider_id, name, history_days, group_origin)
      SELECT $1, $2, $3, $4, $5
-     WHERE NOT EXISTS (SELECT id FROM existing_channel_n)
-     on conflict(channel_id, provider_id) do update set name = $3, history_days = $4, group_origin = $5,
-     updated_at=case when (channel_name.name = $3 and channel_name.history_days = $4 and channel_name.group_origin = $5) then channel_name.updated_at else now() end
-     returning id, created_at, updated_at)
-SELECT icn.id, icn.created_at, icn.updated_at
+     WHERE NOT EXISTS (SELECT ucn.id FROM updated_channel_n ucn)
+     returning id, created_at, updated_at, null::jsonb as old, to_jsonb(channel_name) as new)
+SELECT icn.id, icn.created_at, icn.updated_at, icn.old, icn.new
 FROM   inserted_channel_n icn
 UNION  ALL
-SELECT ecn.id, ecn.created_at, ecn.updated_at
-FROM existing_channel_n ecn;`, channelId, channelName.Provider.Id, channelName.Name, channelName.HistoryDays, channelName.Group)
+SELECT ucn.id, ucn.created_at, ucn.updated_at, ucn.old, ucn.new
+FROM updated_channel_n ucn
+limit 1;`, channelId, channelName.Provider.Id, channelName.Name, channelName.HistoryDays, channelName.Group)
 
 	if row == nil {
 		if err == nil {
@@ -126,7 +139,24 @@ FROM existing_channel_n ecn;`, channelId, channelName.Provider.Id, channelName.N
 		return err
 	}
 
-	return ScanRow(row, &channelName.Id, &channelName.CreatedAt, &channelName.UpdatedAt)
+	oldJson := map[string]interface{}{}
+	newJson := map[string]interface{}{}
+
+	err = ScanRow(row, &channelName.Id, &channelName.CreatedAt, &channelName.UpdatedAt, &oldJson, &newJson)
+
+	if err != nil {
+		return err
+	}
+
+	if channelName.Id == 0 {
+		return errors.New("failed insert or update channel_name")
+	}
+
+	if len(oldJson) != 0 {
+		go QueryAddHistory("channel_name", channelName.Id, oldJson, newJson)
+	}
+
+	return err
 }
 
 func QueryGetChannelInfo(remoteId string, provider *Provider) (*Channel, error) {
@@ -160,7 +190,7 @@ order by c.id, cn.updated_at DESC NULLS LAST limit 1;`, remoteId, provider.Host)
 		&channel.ChannelName.Id, &channel.ChannelName.Name, &channel.ChannelName.HistoryDays, &channel.ChannelName.Group, &channel.ChannelName.CreatedAt, &channel.ChannelName.UpdatedAt,
 		&channel.ChannelName.Provider.Id, &channel.ChannelName.Provider.Name)
 
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 
@@ -211,89 +241,3 @@ group by c.tvg_name`)
 	}
 	return tvgChannels, err
 }
-
-/*
-func QueryGetChannelInfo(remoteId string) (*Channel, error) {
-
-	if remoteId == "" {
-		return nil, errors.New("zero remoteId")
-	}
-
-	row, err := QueryRow(`SELECT c.id, c.name, c.remote_id, c.width, c.height, c.history_days, c.group_origin
-from channel c where c.remote_id = $1;`, remoteId)
-
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	if row == nil {
-		return nil, errors.New("failed to fetch channel")
-	}
-
-	channel := Channel{}
-	err = ScanRow(row, &channel.Id, &channel.Name, &channel.RemoteId, &channel.Width, &channel.Height,
-		&channel.HistoryDays, &channel.Group)
-
-	if err == pgx.ErrNoRows {
-		return nil, nil
-	}
-
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	return &channel, err
-}
-
-func QueryAddChannelInfo(channel *Channel) error {
-	// TODO: Add or update channel info
-
-	if channel == nil {
-		return errors.New("empty channel data")
-	}
-
-	row, err := QueryRow(`insert into channel(name, remote_id, width, height, history_days, group_origin)
-values($1, $2, $3, $4, $5, $6)
-returning id;`, channel.Name, channel.RemoteId, channel.Width, channel.Height, channel.HistoryDays, channel.Group)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	if row == nil {
-		if err == nil {
-			return errors.New("failed insert follow up data to DB")
-		}
-		return err
-	}
-
-	return ScanRow(row, &channel.Id)
-}
-
-func QueryUpdateChannel(channel *Channel) error {
-	if channel == nil {
-		return errors.New("empty channel data")
-	}
-
-	count, err := Exec(`update channel set
-name = $2,
-history_days = $3,
-width = $4,
-height = $5,
-group_origin = $6,
-updated_at = now()
-where remote_id = $1
-returning id;`, channel.RemoteId, channel.Name, channel.HistoryDays, channel.Width, channel.Height, channel.Group)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	if err == nil && count == 0 {
-		err = errors.New("zero rows updated")
-	}
-
-	return err
-}
-*/
