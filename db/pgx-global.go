@@ -61,3 +61,10 @@ func BulkInsert(table string, columns []string, rows [][]interface{}) (int, erro
 	}
 	return dbase.BulkInsert(table, columns, rows)
 }
+
+func WaitAllComplete() {
+	if dbase == nil {
+		return
+	}
+	dbase.WaitAllComplete()
+}

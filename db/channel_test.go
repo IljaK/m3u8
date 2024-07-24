@@ -43,7 +43,7 @@ func TestQueryAddOrUpdateChannelName(t *testing.T) {
 		RemoteId:    "1234",
 		Width:       1280,
 		Height:      720,
-		FrameRate:   30,
+		FrameRate:   60,
 		ChannelName: ChannelName{},
 	}
 
@@ -52,6 +52,7 @@ func TestQueryAddOrUpdateChannelName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error inserting or updating channel: %v", err)
 	}
+	WaitAllComplete()
 
 }
 
@@ -78,4 +79,6 @@ func TestQueryGetChannelInfo(t *testing.T) {
 	if c == nil {
 		t.Fatalf("Failed to get channel info")
 	}
+
+	WaitAllComplete()
 }

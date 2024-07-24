@@ -109,4 +109,8 @@ func main() {
 	log.Println("Processing play lists...")
 	processListConfig()
 	log.Println("Completed!")
+
+	// Wait till all async DB Queries complete
+	// TODO: timeout
+	db.WaitAllComplete()
 }

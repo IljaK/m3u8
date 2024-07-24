@@ -53,8 +53,11 @@ func QueryInsertOrUpdateChannel(channel *Channel) error {
     select ec.* from channel ec
     where ec.remote_id = $1
 ), updated_channel AS (
-UPDATE channel c_new set width = $2, height = $3, frame_rate = $4,
-    updated_at=case when (c_new.width = $2 and c_new.height = $3 and c_new.frame_rate = $4) then c_new.updated_at else now() end
+UPDATE channel c_new set 
+width = (case when $2 = 0 then c_old.width else $2 end),
+height = (case when $3 = 0 then c_old.height else $3 end),
+frame_rate = (case when $4 = 0 then c_old.frame_rate else $4 end),
+updated_at = (case when (c_new.width = c_old.width and c_new.height = c_old.height and c_new.frame_rate = c_old.frame_rate) then c_old.updated_at else now() end)
     from existing_channel c_old
     WHERE c_new.id = c_old.id
     returning c_new.id, c_new.created_at, c_new.updated_at, to_jsonb(c_old) as old, to_jsonb(c_new) as new),

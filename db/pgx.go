@@ -16,6 +16,7 @@ type DBase struct {
 	connection   *pgxpool.Pool
 	connMutex    sync.Mutex
 	queryTimeout time.Duration
+	waitGroup    sync.WaitGroup
 }
 
 func (d *DBase) GetConnection() *pgxpool.Pool {
@@ -92,6 +93,10 @@ func (d *DBase) QueryRow(query string, args ...interface{}) (pgx.Row, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
 	defer cancel()
+
+	d.waitGroup.Add(1)
+	defer d.waitGroup.Done()
+
 	return d.connection.QueryRow(ctx, query, args...), nil
 }
 
@@ -101,6 +106,10 @@ func (d *DBase) QueryRows(query string, args ...interface{}) (pgx.Rows, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
 	defer cancel()
+
+	d.waitGroup.Add(1)
+	defer d.waitGroup.Done()
+
 	return d.connection.Query(ctx, query, args...)
 }
 
@@ -113,6 +122,10 @@ func (d *DBase) IncrementExec(query string, args ...interface{}) (int, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
 	defer cancel()
+
+	d.waitGroup.Add(1)
+	defer d.waitGroup.Done()
+
 	row := d.connection.QueryRow(ctx, query, args...)
 	err := ScanRow(row, &id)
 
@@ -126,6 +139,10 @@ func (d *DBase) Exec(query string, args ...interface{}) (int, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), d.queryTimeout)
 	defer cancel()
+
+	d.waitGroup.Add(1)
+	defer d.waitGroup.Done()
+
 	res, err := d.connection.Exec(ctx, query, args...)
 
 	if res == nil {
@@ -145,6 +162,10 @@ func (d *DBase) BulkInsert(table string, columns []string, rows [][]interface{})
 		pgx.CopyFromRows(rows),
 	)
 	return int(copyCount), err
+}
+
+func (d *DBase) WaitAllComplete() {
+	d.waitGroup.Wait()
 }
 
 func getNullableReplacement(item interface{}) interface{} {
