@@ -115,19 +115,16 @@ func (c *Channel) SetName(nameData string, groupName string) {
 	provider := db.Provider{}
 	provider.FromUri(u.Host, splittedPath)
 
-	//if remoteId == "16140" {
-	//	log.Println("Test!")
-	//}
-
 	channelData, err := db.QueryGetChannelInfo(remoteId, &provider)
 
-	if channelData == nil || ((!c.NoSampleLoad && (channelData.Width == 0 || channelData.Height == 0)) || c.ForceReloadData) {
+	if channelData == nil || ((!c.NoSampleLoad && channelData.HasAllMeta()) || c.ForceReloadData) {
 		if c.loadMeta(remoteId) == nil {
 			log.Printf("Failed to load channel meta for remoteId: %s", remoteId)
 		}
 	} else {
 		c.Width = channelData.Width
 		c.Height = channelData.Height
+		c.FrameRate = channelData.FrameRate
 		c.TvgName = channelData.TvgName
 	}
 
@@ -164,6 +161,9 @@ func (c *Channel) isNeedDBUpdate(dbChannel *db.Channel) bool {
 		return true
 	}
 	if dbChannel.Height != c.Height {
+		return true
+	}
+	if dbChannel.FrameRate != c.FrameRate {
 		return true
 	}
 	if dbChannel.ChannelName.Id == 0 {

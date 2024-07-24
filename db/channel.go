@@ -8,9 +8,10 @@ import (
 )
 
 type Channel struct {
-	Id        int64
-	TvgName   string
-	RemoteId  string
+	Id       int64
+	TvgName  string
+	RemoteId string
+
 	Width     int
 	Height    int
 	FrameRate int
@@ -19,6 +20,10 @@ type Channel struct {
 	UpdatedAt time.Time
 
 	ChannelName ChannelName
+}
+
+func (c *Channel) HasAllMeta() bool {
+	return c.Width != 0 && c.Height != 0 && c.FrameRate != 0
 }
 
 type ChannelName struct {
