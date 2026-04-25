@@ -16,6 +16,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type GroupResType int
+
+const (
+	GroupResTypeSD GroupResType = iota
+	GroupResTypeHD
+	GroupResType4K
+
+	GroupResTypeTOTAL
+)
+
+func getGroupResPostfix(groupType GroupResType) string {
+	switch groupType {
+	case GroupResTypeHD:
+		return " HD"
+	case GroupResType4K:
+		return " 4K"
+	}
+	return ""
+}
+
 type Record struct {
 	GroupName string // #EXTGRP:HD
 	NameData  string // #EXTINF:0,Россия HD / #EXTINF:10.000000,
@@ -27,34 +47,64 @@ func (r *Record) IsFilled() bool {
 }
 
 type multiGroup struct {
-	mux             sync.Mutex
-	lowResChannels  []*Channel
-	highResChannels []*Channel
+	mux      sync.Mutex
+	channels map[GroupResType][]*Channel
+	//lowResChannels  []*Channel
+	//highResChannels []*Channel
 }
 
-func (m *multiGroup) AddChannel(chnl *Channel) {
+func (m *multiGroup) addToGroup(chnl *Channel, groupResType GroupResType) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
+	if m.channels == nil {
+		m.channels = make(map[GroupResType][]*Channel)
+	}
+	_, ok := m.channels[groupResType]
+	if !ok {
+		m.channels[groupResType] = make([]*Channel, 0)
+	}
+	m.channels[groupResType] = append(m.channels[groupResType], chnl)
+}
+
+func (m *multiGroup) addChannels(channels []*Channel) {
+	for _, channel := range channels {
+		m.addChannel(channel)
+	}
+}
+
+func (m *multiGroup) getChannels(groupResType GroupResType) []*Channel {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+
+	if m.channels == nil {
+		return nil
+	}
+	return m.channels[groupResType]
+}
+
+func (m *multiGroup) addChannel(chnl *Channel) {
 	if chnl.Width >= 1920 || chnl.Height >= 1080 {
-		m.highResChannels = append(m.highResChannels, chnl)
+		//if (chnl.Width >= 3840 || chnl.Height >= 2160) {
+		if chnl.Width >= 3840 || chnl.Height >= 2160 {
+			m.addToGroup(chnl, GroupResType4K)
+			return
+		}
+		m.addToGroup(chnl, GroupResTypeHD)
 		return
 	}
-	m.lowResChannels = append(m.lowResChannels, chnl)
+	m.addToGroup(chnl, GroupResTypeSD)
 }
 
 func (m *multiGroup) Contains(channelName string) bool {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 
-	for _, channel := range m.lowResChannels {
-		if channel.Name == channelName {
-			return true
-		}
-	}
-	for _, channel := range m.highResChannels {
-		if channel.Name == channelName {
-			return true
+	for _, ch := range m.channels {
+		for _, chnl := range ch {
+			if chnl.Name == channelName {
+				return true
+			}
 		}
 	}
 	return false
@@ -185,31 +235,36 @@ func (m *Media) SortGroup(groupName string) {
 	group.sortChannels()
 }
 
-func (m *Media) CheckHighRes(groupName string, fullSearch bool, threads int) {
+func (m *Media) CheckHighRes(groupName string) {
 	lowResGroup, _ := m.FindGroup(groupName)
 	if lowResGroup == nil {
 		return
 	}
 
-	highResGroupName := groupName + " HD"
-	hiResGroup, _ := m.FindGroup(highResGroupName)
-	if hiResGroup == nil {
-		// Add group?
-		hiResGroup = m.CreateGroup(highResGroupName)
-	}
 	var separated multiGroup
-	if fullSearch {
-		lowResGroup.mergeChannels(hiResGroup)
-	} else {
-		separated.highResChannels = append(separated.highResChannels, hiResGroup.Channels...)
+	// Add main group channels
+	separated.addChannels(lowResGroup.Channels)
+
+	// Add other group channels
+	for i := GroupResTypeSD + 1; i < GroupResTypeTOTAL; i++ {
+		highResGroupName := groupName + getGroupResPostfix(i)
+		hiResGroup, _ := m.FindGroup(highResGroupName)
+		if hiResGroup == nil {
+			// Add group?
+			hiResGroup = m.CreateGroup(highResGroupName)
+		}
+		separated.addChannels(hiResGroup.Channels)
 	}
 
-	for _, channel := range lowResGroup.Channels {
-		separated.AddChannel(channel)
+	// Set divided channels to groups
+	for i := GroupResTypeSD; i < GroupResTypeTOTAL; i++ {
+		resGroupName := groupName + getGroupResPostfix(i)
+		resGroup, _ := m.FindGroup(resGroupName)
+		if resGroup == nil {
+			resGroup = m.CreateGroup(resGroupName)
+		}
+		resGroup.Channels = separated.getChannels(i)
 	}
-
-	lowResGroup.Channels = separated.lowResChannels
-	hiResGroup.Channels = separated.highResChannels
 }
 
 func ReadUrl(url string, forceReloadChannelData bool, noSampleLoad bool) *Media {
@@ -492,7 +547,7 @@ func (m *Media) PrintGroups() {
 func (m *Media) ValidateHighRes() {
 	validationList := make([]string, 0, 10)
 
-	groupsConf := cfg.GetHDSplit()
+	groupsConf := cfg.GetHighResSplitGroups()
 
 	for _, g := range groupsConf {
 		group, _ := m.FindGroup(g)
@@ -505,7 +560,7 @@ func (m *Media) ValidateHighRes() {
 		}
 	}
 	for _, groupName := range validationList {
-		m.CheckHighRes(groupName, true, 2)
+		m.CheckHighRes(groupName)
 	}
 }
 

@@ -2,11 +2,12 @@ package cfg
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
 	"m3u8/util"
 	"os"
 	"strings"
+
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 var conf map[string]interface{}
@@ -50,8 +51,8 @@ func GetLists() []interface{} {
 	return util.GetValueArray("lists", conf, []interface{}{})
 }
 
-func GetHDSplit() []string {
-	return util.GetValueArray("group_hd_split", conf, []string{})
+func GetHighResSplitGroups() []string {
+	return util.GetValueArray("group_res_split", conf, []string{})
 }
 func GetGroupOrder() []string {
 	return util.GetValueArray("group_order", conf, []string{})
