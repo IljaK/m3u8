@@ -98,7 +98,7 @@ limit 1;`, channel.RemoteId, channel.Width, channel.Height, channel.FrameRate)
 	}
 
 	if len(oldJson) != 0 {
-		go QueryAddHistory("channel", channel.Id, oldJson, newJson)
+		QueryAsyncAddHistory("channel", channel.Id, oldJson, newJson)
 	}
 
 	return QueryAddOrUpdateChannelName(channel.Id, &channel.ChannelName)
@@ -161,7 +161,7 @@ limit 1;`, channelId, channelName.Provider.Id, channelName.Name, channelName.His
 	}
 
 	if len(oldJson) != 0 {
-		go QueryAddHistory("channel_name", channelName.Id, oldJson, newJson)
+		QueryAsyncAddHistory("channel_name", channelName.Id, oldJson, newJson)
 	}
 
 	return err

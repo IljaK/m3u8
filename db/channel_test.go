@@ -35,7 +35,7 @@ func initDB(t *testing.T) {
 	}
 }
 
-func TestQueryAddOrUpdateChannelName(t *testing.T) {
+func TestQueryAddOrUpdateChannel(t *testing.T) {
 
 	initDB(t)
 
@@ -54,6 +54,24 @@ func TestQueryAddOrUpdateChannelName(t *testing.T) {
 	}
 	WaitAllComplete()
 
+}
+
+func TestQueryAddOrUpdateChannelName(t *testing.T) {
+	initDB(t)
+
+	channelId := int64(8)
+	channelName := ChannelName{
+		Id:    1,
+		Name:  "test 6",
+		Group: "",
+	}
+
+	err := QueryAddOrUpdateChannelName(channelId, &channelName)
+
+	if err != nil {
+		t.Fatalf("Error inserting or updating channel name: %v", err)
+	}
+	WaitAllComplete()
 }
 
 func TestQueryGetChannelInfo(t *testing.T) {

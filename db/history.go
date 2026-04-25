@@ -11,7 +11,22 @@ type ValueChange struct {
 	NewValue interface{} `json:"new"`
 }
 
+func QueryAsyncAddHistory(tableName string, rowId int64, old map[string]interface{}, changed map[string]interface{}) {
+	if dbase == nil {
+		QueryAddHistory(tableName, rowId, old, changed)
+		return
+	}
+	dbase.waitGroup.Add(1)
+	go asyncAddHistory(tableName, rowId, old, changed)
+}
+
+func asyncAddHistory(tableName string, rowId int64, old map[string]interface{}, changed map[string]interface{}) {
+	defer dbase.waitGroup.Done()
+	QueryAddHistory(tableName, rowId, old, changed)
+}
+
 func QueryAddHistory(tableName string, rowId int64, old map[string]interface{}, changed map[string]interface{}) {
+
 	changes := make([]string, 0, 1)
 
 	diffMap := map[string]ValueChange{}

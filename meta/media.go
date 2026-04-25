@@ -3,7 +3,6 @@ package meta
 import (
 	"bufio"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"m3u8/cfg"
 	"m3u8/util"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Record struct {
@@ -499,7 +500,7 @@ func (m *Media) ValidateHighRes() {
 			continue
 		}
 
-		if !strings.Contains(group.Name, "HD") && !strings.Contains(group.Name, "4K") {
+		if !strings.Contains(group.Name, " HD") && !strings.Contains(group.Name, " 4K") {
 			validationList = append(validationList, group.Name)
 		}
 	}
