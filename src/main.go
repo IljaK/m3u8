@@ -1,7 +1,6 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	"io"
 	"m3u8/cfg"
 	"m3u8/cmd"
@@ -10,6 +9,8 @@ import (
 	"m3u8/xmltv"
 	"os"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func processChannels(media *meta.Media) {
